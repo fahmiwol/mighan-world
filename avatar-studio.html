@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mighan Avatar Studio</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg1:#dff1ff;--bg2:#e4ecff;--bg3:#efe7ff;--ink:#1e293b;--muted:#64748b;--line:rgba(15,23,42,.08);--accent:#0ea5e9;--accent2:#7c3aed;--ok:#10b981}
+  html,body{height:100%;font-family:'Segoe UI','Nunito',system-ui,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));overflow:hidden}
+  header{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:rgba(255,255,255,.6);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:20}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px}
+  .brand .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px}
+  .brand small{font-weight:600;color:var(--muted);font-size:12px}
+  .wrap{display:flex;height:100%;padding-top:56px}
+  /* stage */
+  .left{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-width:0;padding:16px}
+  .stage{width:min(46vw,430px);height:min(56vh,500px);border-radius:26px;overflow:hidden;position:relative;background:radial-gradient(120% 90% at 50% 12%,#bfe9ff 0%,#d7e9ff 45%,#efe6ff 100%);border:1px solid rgba(255,255,255,.9);box-shadow:0 14px 44px rgba(2,32,90,.12)}
+  .stage canvas{display:block;width:100%;height:100%}
+  .stage .tag{position:absolute;top:13px;left:15px;font-size:12px;font-weight:700;color:#0369a1;background:rgba(255,255,255,.6);padding:4px 10px;border-radius:20px}
+  .stage .hint{position:absolute;bottom:11px;left:50%;transform:translateX(-50%);font-size:11px;color:#64748b;background:rgba(255,255,255,.5);padding:4px 12px;border-radius:20px;white-space:nowrap}
+  .presets{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:480px}
+  .preset{width:42px;height:42px;border-radius:12px;border:2px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.1);cursor:pointer;transition:.12s;position:relative;overflow:hidden}
+  .preset:hover{transform:translateY(-2px) scale(1.05)}
+  .preset.add{display:flex;align-items:center;justify-content:center;background:#fff;color:#94a3b8;font-size:20px;border:2px dashed #cbd5e1}
+  /* right */
+  .right{width:430px;max-width:43vw;background:rgba(255,255,255,.62);backdrop-filter:blur(16px);border-left:1px solid var(--line);display:flex;flex-direction:column}
+  .tabs{display:flex;gap:6px;padding:12px 12px 0;flex-wrap:wrap}
+  .tab{flex:1;min-width:60px;padding:9px 6px;border-radius:12px 12px 0 0;text-align:center;font-size:12px;font-weight:700;cursor:pointer;background:transparent;border:0;color:#94a3b8;transition:.15s}
+  .tab:hover{color:var(--muted);background:rgba(14,165,233,.06)}
+  .tab.on{color:var(--accent);background:#fff;box-shadow:0 -2px 8px rgba(0,0,0,.04)}
+  .panes{flex:1;overflow-y:auto;background:#fff}
+  .pane{padding:18px 20px;display:none}.pane.on{display:block}
+  .panes::-webkit-scrollbar{width:6px}.panes::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
+  .lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin:6px 0 10px}
+  /* option cards */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:18px}
+  .card{padding:12px 6px 9px;border-radius:14px;border:2px solid #e9eef5;background:#fff;text-align:center;cursor:pointer;transition:.12s;position:relative}
+  .card:hover{border-color:#bae6fd;transform:translateY(-1px)}
+  .card.on{border-color:var(--accent);background:#f0f9ff}
+  .card.on::after{content:'✓';position:absolute;top:5px;right:7px;width:16px;height:16px;background:var(--ok);color:#fff;border-radius:50%;font-size:11px;font-weight:800;line-height:16px}
+  .card .ic{font-size:24px;line-height:1;margin-bottom:5px}
+  .card .nm{font-size:11px;font-weight:700;color:#475569}
+  /* swatches */
+  .sw-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:14px}
+  .sw{aspect-ratio:1;border-radius:9px;cursor:pointer;border:3px solid transparent;transition:.12s;box-shadow:0 2px 4px rgba(0,0,0,.06)}
+  .sw:hover{transform:scale(1.1)}.sw.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(14,165,233,.22)}
+  /* color wheel */
+  .wheelrow{display:flex;gap:16px;align-items:center;margin-bottom:6px}
+  .wheel{width:120px;height:120px;border-radius:50%;flex:none;cursor:crosshair;position:relative;box-shadow:0 3px 10px rgba(0,0,0,.12);
+    background:radial-gradient(circle at center,#fff 0%,rgba(255,255,255,0) 70%),conic-gradient(from 90deg,#ff0000,#ff00ff,#0000ff,#00ffff,#00ff00,#ffff00,#ff0000)}
+  .wheel .knob{position:absolute;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3);transform:translate(-50%,-50%);pointer-events:none}
+  .wheelside{flex:1;display:flex;flex-direction:column;gap:8px}
+  .wheelside .cur{height:30px;border-radius:9px;border:1px solid var(--line)}
+  .light{width:100%;height:22px;border-radius:8px;-webkit-appearance:none;appearance:none;cursor:pointer;background:linear-gradient(90deg,#000,#888,#fff)}
+  .light::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:22px;border-radius:6px;background:#fff;border:1px solid #94a3b8;cursor:pointer}
+  .hexin{font:inherit;font-size:12px;padding:7px 9px;border-radius:8px;border:2px solid #e9eef5;width:100%;text-transform:uppercase}
+  /* photo */
+  .drop{border:2px dashed #bae6fd;border-radius:16px;padding:22px 14px;text-align:center;cursor:pointer;background:#f8fdff}
+  .drop:hover{border-color:var(--accent);background:#eff9ff}.drop .big{font-size:30px;margin-bottom:6px}.drop .t{font-weight:700;color:#0369a1;font-size:13px}.drop .s{font-size:11px;color:#94a3b8;margin-top:3px}
+  .photo-prev{display:none;margin-top:12px;text-align:center}.photo-prev img{max-width:140px;max-height:140px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+  .status{margin-top:10px;font-size:12px;color:var(--muted);min-height:16px;text-align:center}
+  .note{font-size:11px;color:#94a3b8;line-height:1.5;margin-top:8px}
+  /* action bar */
+  .actionbar{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:rgba(255,255,255,.85)}
+  .btn{padding:11px 12px;border-radius:12px;border:0;font:inherit;font-weight:700;font-size:13px;cursor:pointer;transition:.15s}
+  .btn.ghost{background:#f1f5f9;color:#475569;flex:none}.btn.ghost:hover{background:#e2e8f0}
+  .btn.go{background:linear-gradient(135deg,var(--ok),#059669);color:#fff;flex:1}.btn.go:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,185,129,.32)}
+  .btn:disabled{opacity:.55;cursor:wait}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ok);color:#fff;padding:11px 22px;border-radius:12px;font-size:13px;font-weight:700;z-index:50;box-shadow:0 6px 18px rgba(16,185,129,.32);opacity:0;transition:.25s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  @media(max-width:840px){.wrap{flex-direction:column}.right{width:100%;max-width:100%}.stage{width:90vw;height:38vh}}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot">🧍</span><div>Avatar Studio <small>· buat karaktermu</small></div></div>
+  <div style="font-size:12px;color:var(--muted)" id="hdr-id"></div>
+</header>
+<div class="wrap">
+  <div class="left">
+    <div class="stage"><div class="tag">Preview · real-time</div><canvas id="cv"></canvas><div class="hint">drag putar · scroll zoom</div></div>
+    <div class="presets" id="presets"></div>
+  </div>
+  <div class="right">
+    <div class="tabs">
+      <button class="tab on" data-tab="skin">🎭 Kulit</button>
+      <button class="tab" data-tab="hair">💇 Rambut</button>
+      <button class="tab" data-tab="face">😊 Wajah</button>
+      <button class="tab" data-tab="cloth">👕 Baju</button>
+      <button class="tab" data-tab="acc">🎀 Aksesoris</button>
+      <button class="tab" data-tab="photo">📷 Foto</button>
+    </div>
+    <div class="panes">
+      <div class="pane on" data-pane="skin">
+        <div class="lbl">Warna Kulit</div><div class="sw-grid" id="sw-skin"></div>
+        <div class="lbl">Color Wheel</div><div id="wheel-skin"></div>
+      </div>
+      <div class="pane" data-pane="hair">
+        <div class="lbl">Gaya Rambut</div><div class="cards" id="hair-styles"></div>
+        <div class="lbl">Warna Rambut</div><div class="sw-grid" id="sw-hair"></div>
+        <div id="wheel-hair"></div>
+      </div>
+      <div class="pane" data-pane="face">
+        <div class="lbl">Ekspresi</div><div class="cards" id="expressions"></div>
+        <div class="lbl">Warna Mata</div><div class="sw-grid" id="sw-eye"></div>
+      </div>
+      <div class="pane" data-pane="cloth">
+        <div class="lbl">Warna Baju</div><div class="sw-grid" id="sw-shirt"></div><div id="wheel-shirt"></div>
+        <div class="lbl" style="margin-top:14px">Warna Celana</div><div class="sw-grid" id="sw-pants"></div>
+      </div>
+      <div class="pane" data-pane="acc">
+        <div class="lbl">Aksesoris (bisa pilih banyak)</div><div class="cards" id="acc-grid"></div>
+      </div>
+      <div class="pane" data-pane="photo">
+        <div class="lbl">Foto → Avatar 3D</div>
+        <div class="drop" id="drop"><div class="big">📷</div><div class="t">Upload foto wajah</div><div class="s">AI baca kulit/rambut/baju/kacamata → jadi chibi</div></div>
+        <input type="file" id="file" accept="image/*" hidden>
+        <div class="photo-prev" id="photo-prev"><img id="photo-img" alt="foto"></div>
+        <button class="btn go" id="b-analyze" style="width:100%;margin-top:12px;display:none">✨ Analisa → Jadikan 3D</button>
+        <div class="status" id="status"></div>
+        <div class="note">Hasil bisa kamu poles lagi di tab lain.</div>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn ghost" id="b-random" title="Acak">🎲</button>
+      <button class="btn ghost" id="b-preset" title="Simpan sebagai preset">⭐ Preset</button>
+      <button class="btn go" id="b-save">✅ Pakai di World</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { ChibiAvatarBuilder } from './chibi-avatar-builder.js';
+
+const GEN = /localhost|127\.0\.0\.1|:8\d{3}/.test(location.host) ? 'https://ops.mighan.com' : '';
+const params = new URLSearchParams(location.search);
+let avatarId = params.get('id') || '';
+
+const PRESET = {
+  skin:  ['#ffdbac','#f1c27d','#e0ac69','#c68642','#8d5524','#5b3a29','#d4a5a5','#c8956c','#e8b88a','#fce0d0','#a1665e','#6b4226','#ffe0bd','#3d2817'],
+  hair:  ['#1a0a00','#2a1a00','#4a2000','#8B4513','#c0c0c0','#f5f5dc','#ff69b4','#800020','#00c8ff','#7c3aed','#e11d48','#d4a017','#2e8b57','#fff'],
+  shirt: ['#7c3aed','#06b6d4','#f59e0b','#ef4444','#10b981','#3b82f6','#ec4899','#8b5cf6','#14b8a6','#f97316','#6366f1','#84cc16','#fff','#111'],
+  pants: ['#1e293b','#334155','#475569','#0f172a','#1e3a5f','#0f766e','#374151','#4b5563','#1e1b4b','#312e81','#5b3a1a','#3f3f46','#7c2d12','#fff'],
+  eye:   ['#1a1a1a','#3b2410','#1e3a5f','#0f766e','#5b21b6','#7c2d12','#166534','#000'],
+};
+const HAIR_STYLES = [
+  {id:'default',nm:'Klasik',ic:'🧑'},{id:'short',nm:'Cepak',ic:'👦'},{id:'long',nm:'Panjang',ic:'👩'},
+  {id:'ponytail',nm:'Ponytail',ic:'🎀'},{id:'bun',nm:'Cepol',ic:'🧖'},{id:'spiky',nm:'Spiky',ic:'⚡'},
+  {id:'mohawk',nm:'Mohawk',ic:'🎸'},{id:'afro',nm:'Afro',ic:'🦁'},{id:'bald',nm:'Botak',ic:'🥚'},
+];
+const EXPRESSIONS = [
+  {id:'normal',nm:'Normal',ic:'🙂'},{id:'happy',nm:'Senang',ic:'😊'},{id:'wink',nm:'Wink',ic:'😉'},{id:'cool',nm:'Cool',ic:'😎'},
+];
+const ACCS = [{id:'glasses',nm:'Kacamata',ic:'👓'},{id:'hat',nm:'Topi',ic:'🎩'},{id:'headphones',nm:'Headset',ic:'🎧'}];
+
+const app = { skin:'#ffdbac', hair:'#2a1a00', shirt:'#7c3aed', pants:'#1e293b', shoes:'#ffffff', hairStyle:'default', expression:'normal', eyeColor:'#1a1a1a', accessories:[] };
+
+// appearance from URL params (tint to a specific agent) + embed=1 preview-only mode (for agent-detail modal)
+(function(){
+  function hx(v){ if(!v) return null; v=String(v).replace(/^#/,''); return /^[0-9a-fA-F]{6}$/.test(v)?'#'+v:null; }
+  ['skin','hair','shirt','pants','eyeColor'].forEach(function(k){ var c=hx(params.get(k)); if(c) app[k]=c; });
+  ['hairStyle','expression'].forEach(function(k){ var v=params.get(k); if(v) app[k]=v; });
+  if (params.get('embed')) {
+    document.body.classList.add('embed');
+    var st=document.createElement('style');
+    st.textContent='header,.right,.presets,.tag,.hint{display:none!important}.wrap{display:block!important;height:100vh!important;padding:0!important;margin:0!important;gap:0!important}.left{height:100vh!important;width:100%!important;padding:0!important}.stage{height:100vh!important;width:100%!important;border-radius:0!important;background:transparent!important;border:0!important}html,body{background:transparent!important}';
+    document.head.appendChild(st);
+  }
+})();
+
+// ── preview ──
+const canvas=document.getElementById('cv');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(33,1,0.1,50); camera.position.set(0,1.05,2.7);
+const controls=new OrbitControls(camera,canvas); controls.target.set(0,0.72,0); controls.enablePan=false;
+controls.minDistance=1.6; controls.maxDistance=4; controls.minPolarAngle=0.6; controls.maxPolarAngle=1.7;
+controls.autoRotate=true; controls.autoRotateSpeed=1.5; controls.enableDamping=true;
+if(params.get('embed')){ camera.position.set(0,1.25,3.9); controls.target.set(0,0.85,0); controls.minDistance=2.4; controls.maxDistance=5.5; controls.update(); }  // pull back so full chibi fits the modal box
+scene.add(new THREE.AmbientLight(0xffffff,0.7));
+const key=new THREE.DirectionalLight(0xffffff,1.05); key.position.set(2.5,4,2.5); key.castShadow=true; key.shadow.mapSize.set(1024,1024); scene.add(key);
+const fill=new THREE.DirectionalLight(0xffe6c0,0.35); fill.position.set(-2,1.5,1); scene.add(fill);
+const rim=new THREE.DirectionalLight(0xbfe9ff,0.45); rim.position.set(0,2,-3); scene.add(rim);
+// cute grass platform
+const grass=new THREE.Mesh(new THREE.CylinderGeometry(0.72,0.8,0.16,40),new THREE.MeshStandardMaterial({color:0x7ed957,roughness:0.85}));
+grass.position.y=-0.08; grass.receiveShadow=true; scene.add(grass);
+const soil=new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.74,0.12,40),new THREE.MeshStandardMaterial({color:0x9c6b3f,roughness:0.9}));
+soil.position.y=-0.2; scene.add(soil);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(0.74,0.022,12,48),new THREE.MeshStandardMaterial({color:0x33d6e0,emissive:0x0891b2,emissiveIntensity:0.5}));
+ring.rotation.x=Math.PI/2; ring.position.y=0.02; scene.add(ring);
+const sc=new THREE.Mesh(new THREE.PlaneGeometry(6,6),new THREE.ShadowMaterial({opacity:0.12})); sc.rotation.x=-Math.PI/2; sc.position.y=0.001; sc.receiveShadow=true; scene.add(sc);
+const clock=new THREE.Clock(); let chibi=null;
+function rebuild(){ if(chibi){ scene.remove(chibi); chibi.traverse(o=>{ if(o.geometry)o.geometry.dispose(); if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose());} }); }
+  chibi=ChibiAvatarBuilder.build({...app}); chibi.scale.setScalar(1.25); chibi.traverse(o=>{ if(o.isMesh)o.castShadow=true; }); scene.add(chibi);
+}
+function applyColor(key){ if(chibi && ['skin','hair','shirt','pants','shoes'].includes(key)) ChibiAvatarBuilder.updateColors(chibi,{[key]:app[key]}); else rebuild(); }
+function resize(){ const b=canvas.getBoundingClientRect(); const w=b.width||430,h=b.height||500; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(canvas); rebuild(); resize();
+(function loop(){ requestAnimationFrame(loop); controls.update(); if(chibi) chibi.position.y=Math.sin(clock.getElapsedTime()*2)*0.03; renderer.render(scene,camera); })();
+
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+
+// ── swatches ──
+function swGrid(host,key){ document.getElementById(host).innerHTML=PRESET[key].map(c=>`<div class="sw" data-k="${key}" data-c="${c}" style="background:${c}"></div>`).join(''); }
+swGrid('sw-skin','skin'); swGrid('sw-hair','hair'); swGrid('sw-shirt','shirt'); swGrid('sw-pants','pants'); swGrid('sw-eye','eye');
+document.addEventListener('click',e=>{ const sw=e.target.closest('.sw'); if(!sw)return; const k=sw.dataset.k;
+  if(k==='eye'){ app.eyeColor=sw.dataset.c; rebuild(); } else { app[k]=sw.dataset.c; applyColor(k); } syncUI(); });
+
+// ── option cards ──
+document.getElementById('hair-styles').innerHTML=HAIR_STYLES.map(s=>`<div class="card" data-style="${s.id}"><div class="ic">${s.ic}</div><div class="nm">${s.nm}</div></div>`).join('');
+document.getElementById('expressions').innerHTML=EXPRESSIONS.map(s=>`<div class="card" data-expr="${s.id}"><div class="ic">${s.ic}</div><div class="nm">${s.nm}</div></div>`).join('');
+document.getElementById('acc-grid').innerHTML=ACCS.map(a=>`<div class="card" data-acc="${a.id}"><div class="ic">${a.ic}</div><div class="nm">${a.nm}</div></div>`).join('');
+document.querySelectorAll('.card[data-style]').forEach(c=>c.onclick=()=>{ app.hairStyle=c.dataset.style; rebuild(); syncUI(); });
+document.querySelectorAll('.card[data-expr]').forEach(c=>c.onclick=()=>{ app.expression=c.dataset.expr; rebuild(); syncUI(); });
+document.querySelectorAll('.card[data-acc]').forEach(c=>c.onclick=()=>{ const a=c.dataset.acc,i=app.accessories.indexOf(a); if(i>=0)app.accessories.splice(i,1); else app.accessories.push(a); rebuild(); syncUI(); });
+
+// ── tabs ──
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on')); document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on')); t.classList.add('on'); document.querySelector(`.pane[data-pane="${t.dataset.tab}"]`).classList.add('on'); });
+
+// ── color wheel (HSV: angle=hue, radius=sat, slider=lightness) ──
+function hsl2hex(h,s,l){ s/=100;l/=100; const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,9-k(n),1)),to=x=>Math.round(255*x).toString(16).padStart(2,'0'); return '#'+to(f(0))+to(f(8))+to(f(4)); }
+function mountWheel(hostId,key){
+  const host=document.getElementById(hostId);
+  host.innerHTML=`<div class="wheelrow"><div class="wheel" data-k="${key}"><div class="knob"></div></div>
+    <div class="wheelside"><div class="cur" data-cur="${key}"></div><input type="range" class="light" data-k="${key}" min="12" max="92" value="58"><input class="hexin" data-hex="${key}" value="${app[key]}"></div></div>`;
+  const wheel=host.querySelector('.wheel'), knob=host.querySelector('.knob'), light=host.querySelector('.light'), cur=host.querySelector('.cur'), hex=host.querySelector('.hexin');
+  cur.style.background=app[key];
+  let dragging=false;
+  const pick=(ev)=>{ const r=wheel.getBoundingClientRect(),cx=r.width/2,cy=r.height/2; const x=(ev.clientX-r.left-cx),y=(ev.clientY-r.top-cy); const d=Math.min(Math.sqrt(x*x+y*y),cx);
+    const hue=(Math.atan2(y,x)*180/Math.PI+360)%360, sat=Math.min(100,d/cx*100), L=+light.value;
+    const hx=hsl2hex(hue,sat,L); app[key]= key==='eye'?(app.eyeColor=hx):hx; if(key==='eye'){ app.eyeColor=hx; rebuild(); } else applyColor(key);
+    knob.style.left=(cx+Math.cos(hue*Math.PI/180)*d)+'px'; knob.style.top=(cy+Math.sin(hue*Math.PI/180)*d)+'px'; cur.style.background=hx; hex.value=hx.toUpperCase(); syncUI(); };
+  wheel.addEventListener('pointerdown',e=>{dragging=true;wheel.setPointerCapture(e.pointerId);pick(e);});
+  wheel.addEventListener('pointermove',e=>{if(dragging)pick(e);});
+  wheel.addEventListener('pointerup',()=>dragging=false);
+  light.addEventListener('input',()=>{ /* re-pick at current knob pos approx: just nudge via hex */ });
+  hex.addEventListener('change',()=>{ if(/^#?[0-9a-f]{6}$/i.test(hex.value.replace('#',''))){ const v=hex.value[0]==='#'?hex.value:'#'+hex.value; if(key==='eye'){app.eyeColor=v;rebuild();}else{app[key]=v;applyColor(key);} cur.style.background=v; syncUI(); } });
+}
+mountWheel('wheel-skin','skin'); mountWheel('wheel-hair','hair'); mountWheel('wheel-shirt','shirt');
+
+// ── sync active states ──
+function syncUI(){
+  document.querySelectorAll('.sw').forEach(s=>{ const k=s.dataset.k, v=k==='eye'?app.eyeColor:app[k]; s.classList.toggle('on',(s.dataset.c||'').toLowerCase()===(v||'').toLowerCase()); });
+  document.querySelectorAll('.card[data-style]').forEach(c=>c.classList.toggle('on',c.dataset.style===app.hairStyle));
+  document.querySelectorAll('.card[data-expr]').forEach(c=>c.classList.toggle('on',c.dataset.expr===app.expression));
+  document.querySelectorAll('.card[data-acc]').forEach(c=>c.classList.toggle('on',app.accessories.includes(c.dataset.acc)));
+  document.querySelectorAll('.cur').forEach(c=>{ const k=c.dataset.cur; c.style.background=k==='eye'?app.eyeColor:app[k]; });
+  document.getElementById('hdr-id').textContent=avatarId?('id: '+avatarId):'';
+}
+
+// ── presets (quick + saved localStorage) ──
+const QUICK=[
+  {skin:'#ffdbac',hair:'#2a1a00',shirt:'#3b82f6',pants:'#1e293b',hairStyle:'short',expression:'happy',eyeColor:'#1a1a1a',accessories:[]},
+  {skin:'#e0ac69',hair:'#ff69b4',shirt:'#ec4899',pants:'#312e81',hairStyle:'long',expression:'wink',eyeColor:'#5b21b6',accessories:['glasses']},
+  {skin:'#c68642',hair:'#1a0a00',shirt:'#10b981',pants:'#0f172a',hairStyle:'afro',expression:'cool',eyeColor:'#1a1a1a',accessories:[]},
+  {skin:'#f1c27d',hair:'#00c8ff',shirt:'#f59e0b',pants:'#374151',hairStyle:'spiky',expression:'normal',eyeColor:'#0f766e',accessories:['headphones']},
+];
+function loadPresets(){ try{ return JSON.parse(localStorage.getItem('mighan_avatar_presets')||'[]'); }catch(e){ return []; } }
+function renderPresets(){ const saved=loadPresets();
+  document.getElementById('presets').innerHTML =
+    QUICK.map((p,i)=>`<div class="preset" data-q="${i}" style="background:linear-gradient(135deg,${p.shirt},${p.hair})" title="preset cepat"></div>`).join('')
+    + saved.map((p,i)=>`<div class="preset" data-s="${i}" style="background:linear-gradient(135deg,${p.shirt||'#888'},${p.hair||'#444'})" title="preset tersimpan"></div>`).join('')
+    + `<div class="preset add" id="preset-add" title="Simpan preset">＋</div>`;
+  document.querySelectorAll('.preset[data-q]').forEach(el=>el.onclick=()=>applyPreset(QUICK[+el.dataset.q]));
+  document.querySelectorAll('.preset[data-s]').forEach(el=>el.onclick=()=>applyPreset(saved[+el.dataset.s]));
+  document.getElementById('preset-add').onclick=savePreset;
+}
+function applyPreset(p){ Object.assign(app,JSON.parse(JSON.stringify(p))); rebuild(); syncUI(); toast('Preset dipakai'); }
+function savePreset(){ const saved=loadPresets(); saved.push(JSON.parse(JSON.stringify(app))); localStorage.setItem('mighan_avatar_presets',JSON.stringify(saved.slice(-12))); renderPresets(); toast('⭐ Preset disimpan'); }
+document.getElementById('b-preset').onclick=savePreset;
+
+// ── randomize ──
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+document.getElementById('b-random').onclick=()=>{ app.skin=rnd(PRESET.skin);app.hair=rnd(PRESET.hair);app.shirt=rnd(PRESET.shirt);app.pants=rnd(PRESET.pants);app.eyeColor=rnd(PRESET.eye);
+  app.hairStyle=rnd(HAIR_STYLES).id;app.expression=rnd(EXPRESSIONS).id;app.accessories=Math.random()>0.5?[rnd(ACCS).id]:[]; rebuild(); syncUI(); };
+
+// ── save (Pakai di World) → /api/gen/avatar ──
+document.getElementById('b-save').onclick=async()=>{
+  const btn=document.getElementById('b-save'); btn.disabled=true; let sid=null;
+  try{ const r=await fetch(GEN+'/api/gen/avatar',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:avatarId||undefined,appearance:{...app}})});
+    const d=await r.json(); if(d.ok&&d.id){ avatarId=d.id; sid=d.id; const u=new URL(location.href); u.searchParams.set('id',avatarId); history.replaceState(null,'',u); } }catch(e){}
+  try{ window.parent&&window.parent.postMessage({source:'avatar-studio',type:'save',id:avatarId,appearance:{...app}},'*'); }catch(e){}
+  const blob=new Blob([JSON.stringify({id:avatarId,appearance:{...app}},null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(avatarId||'avatar')+'.json'; a.click();
+  toast(sid?('✅ Dipakai di World: '+sid):'✅ Avatar diunduh (server offline)'); syncUI(); btn.disabled=false;
+};
+
+// ── photo → 3D ──
+const fileInput=document.getElementById('file'), drop=document.getElementById('drop'); let photoDataUrl=null;
+drop.onclick=()=>fileInput.click();
+drop.ondragover=e=>{e.preventDefault();drop.style.borderColor='#0ea5e9';}; drop.ondragleave=()=>drop.style.borderColor='';
+drop.ondrop=e=>{e.preventDefault();drop.style.borderColor='';if(e.dataTransfer.files[0])loadPhoto(e.dataTransfer.files[0]);};
+fileInput.onchange=e=>{if(e.target.files[0])loadPhoto(e.target.files[0]);};
+function loadPhoto(file){ const rd=new FileReader(); rd.onload=()=>{ const im=new Image(); im.onload=()=>{ const max=640;let w=im.width,h=im.height;const s=Math.min(1,max/Math.max(w,h)); const c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height); photoDataUrl=c.toDataURL('image/jpeg',0.85);
+  document.getElementById('photo-img').src=photoDataUrl; document.getElementById('photo-prev').style.display='block'; document.getElementById('b-analyze').style.display='block'; document.getElementById('status').textContent=''; }; im.onerror=()=>{document.getElementById('status').textContent='❌ gagal baca gambar';}; im.src=rd.result; }; rd.readAsDataURL(file); }
+document.getElementById('b-analyze').onclick=async()=>{ if(!photoDataUrl)return; const st=document.getElementById('status'),btn=document.getElementById('b-analyze'); btn.disabled=true; st.textContent='⏳ Menganalisa foto (Gemini)…';
+  const prompt='Convert this person photo into a CUTE CHIBI AVATAR. Return ONLY strict minified JSON (no markdown), keys: skin,hair,hairStyle,expression,eyeColor,shirt,pants,glasses. colors=#rrggbb. hairStyle one of "default","short","long","ponytail","bun","spiky","mohawk","afro","bald". expression one of "normal","happy","wink","cool". glasses boolean.';
+  try{ const r=await fetch(GEN+'/api/gen/vision',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:photoDataUrl,prompt})}); const d=await r.json(); if(!d.ok)throw new Error(d.error||'vision gagal');
+    let t=(d.text||'').trim(); const m=t.match(/\{[\s\S]*\}/); if(m)t=m[0]; const j=JSON.parse(t);
+    const hx=v=>(typeof v==='string'&&/^#?[0-9a-f]{6}$/i.test(v.replace('#','')))?(v[0]==='#'?v:'#'+v):null;
+    if(hx(j.skin))app.skin=hx(j.skin); if(hx(j.hair))app.hair=hx(j.hair); if(hx(j.shirt))app.shirt=hx(j.shirt); if(hx(j.pants))app.pants=hx(j.pants); if(hx(j.eyeColor))app.eyeColor=hx(j.eyeColor);
+    if(HAIR_STYLES.some(s=>s.id===j.hairStyle))app.hairStyle=j.hairStyle; if(EXPRESSIONS.some(s=>s.id===j.expression))app.expression=j.expression;
+    app.accessories=j.glasses?Array.from(new Set([...app.accessories,'glasses'])):app.accessories.filter(a=>a!=='glasses');
+    rebuild(); syncUI(); st.textContent='✅ Avatar dibuat dari foto'; toast('✨ Foto → 3D berhasil'); }catch(e){ st.textContent='❌ '+e.message; } finally{ btn.disabled=false; }
+};
+
+// ── load existing + init ──
+async function loadExisting(){ if(!avatarId)return; try{ const r=await fetch(GEN+'/api/gen/avatar/'+encodeURIComponent(avatarId)); const d=await r.json(); if(d.ok&&d.rec&&d.rec.appearance){ Object.assign(app,d.rec.appearance); rebuild(); syncUI(); } }catch(e){} }
+renderPresets(); syncUI(); loadExisting();
+</script>
+</body>
+</html>

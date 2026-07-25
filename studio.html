@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mighan 3D Studio</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0e1018;--panel:#161a26;--panel2:#1d2230;--line:#2a3142;--txt:#e6e9f2;--mut:#8b93a7;--acc:#33d6e0;--acc2:#7c5cff}
+  html,body{height:100%;background:var(--bg);color:var(--txt);font:13px/1.4 'Segoe UI',system-ui,sans-serif;overflow:hidden}
+  #app{display:grid;grid-template-columns:230px 1fr 250px;grid-template-rows:46px 1fr;height:100vh}
+  /* toolbar */
+  #bar{grid-column:1/4;display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}
+  #bar .logo{font-weight:800;color:var(--acc);margin-right:6px;white-space:nowrap}
+  .btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font:inherit;cursor:pointer;white-space:nowrap}
+  .btn:hover{border-color:var(--acc)}
+  .btn.on{border-color:var(--acc);color:var(--acc)}
+  .btn.primary{background:var(--acc);color:#04222a;border:0;font-weight:700}
+  .sep{width:1px;align-self:stretch;background:var(--line);margin:8px 2px}
+  #bar input{background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:7px;padding:6px 9px;font:inherit;width:190px}
+  .menu{position:relative}
+  .menu .pop{position:absolute;top:36px;left:0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px;display:none;z-index:30;min-width:140px}
+  .menu.open .pop{display:block}
+  .menu .pop button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--txt);padding:7px 10px;border-radius:6px;cursor:pointer;font:inherit}
+  .menu .pop button:hover{background:var(--panel)}
+  /* mode tabs + folded-in builders */
+  .tab{background:none;border:0;color:var(--mut);padding:6px 11px;border-radius:7px;cursor:pointer;font:inherit;font-weight:700;white-space:nowrap}
+  .tab:hover{color:var(--txt)}
+  .tab.on{background:var(--panel2);color:var(--acc);box-shadow:inset 0 -2px 0 var(--acc)}
+  #modeFrame{grid-column:1/4;grid-row:2;width:100%;height:100%;border:0;display:none;background:#0b0d14}
+  body.mode-alt #left,body.mode-alt #view,body.mode-alt #right{display:none}
+  body.mode-alt #modeFrame{display:block}
+  body.mode-alt #objTools{display:none}
+  body.play #view{box-shadow:inset 0 0 0 2px var(--acc)} body.play #hint::after{content:' · ▶ MODE PLAY';color:var(--acc)}
+  /* panels */
+  #left,#right{background:var(--panel);overflow:auto;padding:10px}
+  #left{border-right:1px solid var(--line)} #right{border-left:1px solid var(--line)}
+  .ph{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin:4px 0 8px}
+  #tree .it{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:6px;cursor:pointer;color:var(--txt)}
+  #tree .it:hover{background:var(--panel2)} #tree .it.sel{background:#0b2a2c;color:var(--acc);outline:1px solid #1c4a4d}
+  #tree .it .ico{font-size:13px}
+  #view{position:relative;background:#0b0d14}
+  #cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #hint{position:absolute;left:12px;bottom:10px;color:var(--mut);font-size:11px;pointer-events:none}
+  #timeline{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;display:none;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 9px;width:min(700px,94%);box-shadow:0 8px 30px rgba(0,0,0,.45);z-index:20}
+  #timeline.show{display:flex}
+  #timeline .btn{padding:5px 8px}
+  #timeline input[type=number]{background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:6px;padding:4px;font:inherit}
+  #timeline input[type=range]{flex:1;accent-color:var(--acc)}
+  #timeline label{display:flex;align-items:center;gap:3px;color:var(--mut);font-size:11px;white-space:nowrap}
+  #banner{position:absolute;left:50%;top:32%;transform:translateX(-50%);font-size:42px;font-weight:800;letter-spacing:1px;color:var(--acc);text-shadow:0 4px 24px rgba(0,0,0,.6);display:none;pointer-events:none;z-index:25;text-align:center}
+  @keyframes bannerIn{from{opacity:0;transform:translateX(-50%) scale(.82)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+  #hud{position:absolute;left:12px;top:12px;background:rgba(11,13,20,.8);border:1px solid var(--line);border-radius:8px;padding:7px 12px;color:var(--txt);font-weight:700;font-size:14px;display:none;z-index:24;pointer-events:none}
+  #hud.on{display:block}
+  #gameOver{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(8,10,16,.55);z-index:30}
+  #gameOver.on{display:flex}
+  #goBox{background:var(--panel2);border:1px solid var(--acc);border-radius:14px;padding:26px 34px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+  #goText{font-size:34px;font-weight:800;color:var(--acc)}
+  #logicModal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:60}
+  #logicModal.on{display:flex}
+  #logicBox{width:min(740px,94vw);max-height:80vh;overflow:auto;background:var(--panel2);border:1px solid var(--acc);border-radius:12px;padding:14px}
+  #logicBox select,#logicBox input{background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:6px;padding:4px 6px;font:inherit;font-size:11px}
+  .ruleRow{display:flex;gap:5px;align-items:center;margin:5px 0;flex-wrap:wrap;background:#0c0e1a;border:1px solid var(--line);border-radius:8px;padding:7px}
+  #tilePalette{position:absolute;left:50%;top:10px;transform:translateX(-50%);display:none;gap:5px;flex-wrap:wrap;justify-content:center;max-width:92%;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 8px;box-shadow:0 8px 30px rgba(0,0,0,.45);z-index:22}
+  #tilePalette.show{display:flex}
+  .tbtn{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:5px 9px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+  .tbtn:hover{border-color:var(--acc)} .tbtn.on{border-color:var(--acc);color:var(--acc);background:#0b2a2c}
+  .tctrl{display:inline-flex;align-items:center;gap:2px;color:var(--mut);font-size:11px;padding-right:5px;border-right:1px solid var(--line);margin-right:3px}
+  .tb2{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:3px 7px;font:inherit;font-size:11px;cursor:pointer}
+  .tb2:hover{border-color:var(--acc)} .tb2.on{border-color:var(--acc);color:var(--acc)}
+  #empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:13px;pointer-events:none}
+  /* inspector */
+  .grp{margin-bottom:14px} .grp .lbl{font-size:11px;color:var(--mut);margin:8px 0 4px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+  .right input[type=number],#right input[type=number]{width:100%;background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:6px;padding:5px 6px;font:inherit}
+  #right input[type=text]{width:100%;background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:6px;padding:6px;font:inherit}
+  #right input[type=color]{width:100%;height:30px;background:none;border:1px solid var(--line);border-radius:6px;cursor:pointer}
+  #right input[type=range]{width:100%}
+  .muted{color:var(--mut);font-size:12px}
+  #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#0b2a2c;color:var(--acc);border:1px solid #1c4a4d;padding:9px 16px;border-radius:9px;z-index:50;display:none;font-size:12px}
+  #cmdk{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;z-index:60}
+  #cmdk.on{display:flex}
+  #cmdkBox{margin-top:12vh;width:min(560px,92vw);background:var(--panel2);border:1px solid var(--acc);border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+  #cmdkInput{width:100%;background:#0c0e1a;border:0;border-bottom:1px solid var(--line);color:#fff;padding:14px 16px;font:15px 'Segoe UI',system-ui,sans-serif;outline:none}
+  #cmdkList{max-height:52vh;overflow:auto}
+  #cmdkList .ci{padding:10px 16px;cursor:pointer;color:var(--txt);font-size:13px;display:flex;justify-content:space-between;gap:10px}
+  #cmdkList .ci.sel{background:#0b2a2c;color:var(--acc)}
+  #cmdkList .ci .k{color:var(--mut);font-size:11px}
+  #assetModal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:60}
+  #assetModal.on{display:flex}
+  #assetBox{width:min(620px,92vw);max-height:72vh;overflow:auto;background:var(--panel2);border:1px solid var(--acc);border-radius:12px;padding:14px}
+  #assetGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:10px}
+  #assetGrid .ac{background:#0c0e1a;border:1px solid var(--line);border-radius:8px;padding:16px 8px;text-align:center;cursor:pointer;font-size:12px;color:var(--txt)}
+  #assetGrid .ac:hover{border-color:var(--acc);color:var(--acc)}
+  #matPresets button,#matTex button{font-size:11px;padding:4px 8px;border-radius:6px}
+  #logicOverlay{position:absolute;inset:0;background:#0b0d14;display:none;flex-direction:column;z-index:25}
+  #logicOverlay.on{display:flex}
+  #logicBar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line)}
+  #logicCanvas{flex:1;width:100%;display:block}
+  .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+  "camera-controls": "https://cdn.jsdelivr.net/npm/camera-controls@3/dist/camera-controls.module.js",
+  "@dimforge/rapier3d-compat": "https://esm.sh/@dimforge/rapier3d-compat@0.19.3"
+}}
+</script>
+</head>
+<body>
+<div id="app">
+  <div id="bar">
+    <span class="logo">🧊 Mighan 3D Studio</span>
+    <button class="tab on" id="tObj" title="editor objek + scene">🧩 Object</button>
+    <button class="tab" id="tWorld" title="World builder (tiles, zones, agents)">🏙️ World</button>
+    <button class="tab" id="tChar" title="Character builder (chibi avatar)">🧍 Character</button>
+    <span class="sep"></span>
+    <span id="objTools" style="display:flex;align-items:center;gap:8px">
+    <div class="menu" id="addMenu">
+      <button class="btn" id="addBtn">＋ Add ▾</button>
+      <div class="pop">
+        <button data-prim="box">⬛ Box</button><button data-prim="sphere">⚪ Sphere</button>
+        <button data-prim="cylinder">🥫 Cylinder</button><button data-prim="cone">🔺 Cone</button>
+        <button data-prim="torus">🍩 Torus</button><button data-prim="plane">▭ Plane</button>
+      </div>
+    </div>
+    <span class="sep"></span>
+    <input id="prompt" placeholder="✨ prompt → 3D: kursi lucu / gedung kafe…" />
+    <select id="styleSel" title="Style untuk Generate / 2D→3D" style="background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:7px;padding:6px;font:inherit"><option value="realistic">🎬 Realistic</option><option value="chibi">🧸 Chibi</option><option value="lowpoly">🔷 Low-poly</option><option value="pixar">✨ Pixar</option><option value="clay">🟤 Clay</option><option value="voxel">🧱 Voxel</option><option value="toy">🎀 Toy</option><option value="scifi">🛸 Sci-fi</option></select>
+    <button class="btn" id="genObj" title="LLM → primitives (ringan)">Gen Object</button>
+    <button class="btn" id="genGlb" title="Blender → GLB (detail)">Gen Building</button>
+    <button class="btn" id="genTex" title="prompt → gambar → texture material terpilih">🖼 Gen Texture</button>
+    <button class="btn" id="importBtn">⬆ Import GLB</button>
+    <button class="btn" id="img3d" title="gambar → 3D (RunPod TripoSR, ~1-2 menit)">🖼→3D</button>
+    <button class="btn" id="assets" title="Asset Library (CC0 / free)">🧰 Assets</button>
+    <input type="file" id="file" accept=".glb,.gltf" hidden>
+    <input type="file" id="img3dFile" accept="image/*" hidden>
+    <span class="sep"></span>
+    <button class="btn on" id="gMove" title="W">Move</button>
+    <button class="btn" id="gRot" title="E">Rotate</button>
+    <button class="btn" id="gScale" title="R">Scale</button>
+    <button class="btn" id="snap" title="snap ke grid">⌖ Snap</button>
+    <button class="btn on" id="fx" title="post-fx: ambient occlusion (GTAO) + anti-alias (SMAA)">✨ FX</button>
+    <span class="sep"></span>
+    <button class="btn" id="undo" title="Ctrl+Z">↶</button>
+    <button class="btn" id="redo" title="Ctrl+Y">↷</button>
+    <button class="btn" id="dup">⧉ Dup</button>
+    <button class="btn" id="ungroup" title="Ungroup / Explode — pecah objek hasil generator/import jadi part yang bisa diedit satu-satu">🧩 Ungroup</button>
+    <button class="btn" id="playerBtn" title="Jadikan objek terpilih sebagai Player (game) — Play lalu WASD/panah, Space lompat">🎮 Player</button>
+    <button class="btn" id="triggerBtn" title="Jadikan objek terpilih sebagai zona Trigger (game) — player masuk → aksi">🎯 Trigger</button>
+    <button class="btn" id="npcBtn" title="Jadikan objek terpilih sebagai NPC — jalan-jalan sendiri saat Play (warga kota)">🧍 NPC</button>
+    <button class="btn" id="rulesBtn" title="Game Logic — rules no-code (WHEN → DO): skor, menang/kalah, dll">🎲 Rules</button>
+    <button class="btn" id="buildBtn" title="World / Tile Builder — lukis grid jadi level/kota (The Sims / city-sim)">🧱 Build</button>
+    <button class="btn" id="del">🗑 Delete</button>
+    <span class="sep"></span>
+    <button class="btn" id="playToggle" title="Play mode — uji interaksi Hover/Click">▶ Play</button>
+    <button class="btn" id="logicBtn" title="Visual scripting — node editor (litegraph)">🔌 Logic</button>
+    <button class="btn" id="tlBtn" title="Animation Timeline — keyframe motion (Motion/Film)">🎬 Timeline</button>
+    <span class="sep"></span>
+    <button class="btn" id="loadScene" title="muat scene terakhir (localStorage)">📂 Load</button>
+    <button class="btn" id="saveScene" title="simpan scene — autosave aktif">💾 Save</button>
+    <button class="btn primary" id="exportGlb">⬇ Export GLB</button>
+    <button class="btn" id="share" title="Share / Embed + AR (model-viewer, iOS+Android)">📤 Share/AR</button>
+    </span>
+  </div>
+
+  <div id="left">
+    <div class="ph">🗂 Scene</div>
+    <div id="tree"></div>
+  </div>
+
+  <div id="view">
+    <canvas id="cv"></canvas>
+    <div id="logicOverlay"><div id="logicBar"><b style="color:var(--acc)">🔌 Logic — Visual Scripting</b><button class="btn" id="logicRun">▶ Run</button><button class="btn" id="logicFromRules" title="Render game rules (🎲) sebagai node graph — Blueprint view">🎲 From Rules</button><span class="muted" style="font-size:11px">klik-kanan kanvas → Add Node → mighan/*</span><span style="flex:1"></span><button class="btn" id="logicClose">✕ Close</button></div><canvas id="logicCanvas"></canvas></div>
+    <div id="empty">Scene kosong — klik <b style="color:var(--acc)">＋ Add</b> atau ketik prompt → 3D</div>
+    <div id="hint">drag = orbit · scroll = zoom · klik objek = pilih · W/E/R = gizmo · F = fokus</div>
+    <div id="timeline">
+      <button class="btn" id="tlPlay" title="play / pause animasi">▶</button>
+      <button class="btn" id="tlKey" title="set keyframe utk objek terpilih (K)">🔑 Key</button>
+      <button class="btn" id="tlCamKey" title="set camera keyframe (shot sinematik) — kamera difilmkan saat play/scrub">📷 Cam</button>
+      <input type="range" id="tlScrub" min="0" max="5" step="0.01" value="0" title="scrub playhead">
+      <span id="tlTime" class="muted" style="font-variant-numeric:tabular-nums;min-width:80px;text-align:right">0.00 / 5.0s</span>
+      <label title="loop">⟳<input type="checkbox" id="tlLoop" checked></label>
+      <input type="number" id="tlDur" min="1" max="60" step="1" value="5" title="durasi (detik)" style="width:46px">
+      <span id="tlInfo" class="muted" style="min-width:46px;text-align:right">0 key</span>
+      <button class="btn" id="tlClear" title="hapus semua keyframe objek terpilih">🗑</button>
+      <button class="btn" id="tlCloseBtn" title="tutup timeline">✕</button>
+    </div>
+    <div id="banner"></div>
+    <div id="hud"></div>
+    <div id="tilePalette"></div>
+    <div id="gameOver"><div id="goBox"><div id="goText">🏆 YOU WIN</div><div style="display:flex;gap:8px;justify-content:center;margin-top:16px"><button class="btn primary" id="goAgain">▶ Play Again</button><button class="btn" id="goStop">⏹ Stop</button></div></div></div>
+  </div>
+
+  <div id="right">
+    <div class="ph">⚙ Inspector</div>
+    <div id="insp"><div class="muted">Pilih objek untuk edit.</div></div>
+  </div>
+
+  <iframe id="modeFrame" title="builder"></iframe>
+</div>
+<div id="toast"></div>
+<div id="cmdk"><div id="cmdkBox"><input id="cmdkInput" placeholder="⌘ Ketik perintah… (Add box · Glass · Play · Export · Logic…)" autocomplete="off"><div id="cmdkList"></div></div></div>
+<div id="assetModal"><div id="assetBox"><div style="display:flex;justify-content:space-between;align-items:center"><b style="color:var(--acc)">🧰 Asset Library — CC0 / free</b><button class="btn" id="assetClose">✕</button></div><div id="assetGrid"></div><div class="muted" style="font-size:11px;margin-top:10px">Klik untuk tambah ke scene. Sumber: Khronos glTF-Sample-Assets + three.js (CC0/royalty-free).</div></div></div>
+<div id="logicModal"><div id="logicBox"><div style="display:flex;justify-content:space-between;align-items:center"><b style="color:var(--acc)">🎲 Game Logic — Rules (no-code: WHEN → DO)</b><button class="btn" id="logicCardsClose">✕</button></div>
+  <div class="muted" style="font-size:11px;margin:6px 0">Bikin logika game tanpa coding. Contoh: <i>WHEN key Space → DO Score +1</i> · <i>WHEN Score ≥ 3 → DO Win</i> · <i>WHEN collide Coin → DO Hide Coin</i>. Jalan saat ▶ Play.</div>
+  <div id="rulesList"></div>
+  <button class="btn primary" id="ruleAdd" style="margin-top:8px">+ Add rule</button>
+  <span class="muted" style="font-size:11px;margin-left:8px">Skor mulai 0 tiap Play.</span>
+</div></div>
+
+<script type="module">
+import * as THREE from 'three';
+import CameraControls from 'camera-controls';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+const $ = s => document.querySelector(s);
+const GEN = /localhost|127\.0\.0\.1|:8\d{3}/.test(location.host) ? 'https://ops.mighan.com' : '';
+const toast = (m) => { const t = $('#toast'); t.innerHTML = m; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', 2800); };
+
+// ── renderer / scene (pro: IBL + ACES + soft shadows) ──
+const canvas = $('#cv');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0d14);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;   // IBL → "smooth" PBR look
+pmrem.dispose();
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 200);
+CameraControls.install({ THREE });
+const controls = new CameraControls(camera, renderer.domElement);
+controls.setLookAt(4, 3.5, 5, 0, 0.6, 0, false); controls.dollyToCursor = true; controls.smoothTime = 0.18; controls.draggingSmoothTime = 0.08;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445066, 0.7));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(6, 10, 6); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.near = 1; sun.shadow.camera.far = 40;
+sun.shadow.camera.left = sun.shadow.camera.bottom = -12; sun.shadow.camera.right = sun.shadow.camera.top = 12; sun.shadow.bias = -0.0004; scene.add(sun);
+const grid = new THREE.GridHelper(40, 40, 0x33d6e0, 0x223040); grid.material.opacity = 0.35; grid.material.transparent = true; scene.add(grid);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.28 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+// ── post-fx (pro look): GTAO ambient occlusion + SMAA anti-alias + ACES output (safe fallback) ──
+let composer = null, gtaoPass = null, fxOn = true;
+try {
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  gtaoPass = new GTAOPass(scene, camera, 1024, 1024);
+  if (GTAOPass.OUTPUT) gtaoPass.output = GTAOPass.OUTPUT.Default;
+  composer.addPass(gtaoPass);
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.5, 0.85); composer.addPass(bloomPass);  // selective: only emissive/bright blooms
+  composer.addPass(new SMAAPass());
+  composer.addPass(new OutputPass());
+} catch (e) { composer = null; fxOn = false; console.warn('post-fx unavailable -> direct render', e); }
+
+// ── render-on-demand (Spline-style lightness): draw only when something changes ──
+let needsRender = true, _grace = 0;
+function invalidate(frames) { needsRender = true; if (frames && frames > _grace) _grace = frames; }
+controls.addEventListener('update', () => invalidate());
+['pointerdown','pointerup','wheel','keyup','input','change'].forEach(ev =>
+  document.addEventListener(ev, () => invalidate(3), { capture: true, passive: true }));
+
+// ── transform gizmo ──
+const tc = new TransformControls(camera, renderer.domElement);
+tc.addEventListener('dragging-changed', e => { controls.enabled = !e.value; invalidate(2); });
+tc.addEventListener('objectChange', () => { syncInspector(); invalidate(); });
+scene.add(tc.getHelper ? tc.getHelper() : tc);
+// transform undo capture (before drag / after drag)
+let _tBefore = null;
+tc.addEventListener('mouseDown', () => { if (selected) _tBefore = { p: selected.obj.position.clone(), r: selected.obj.rotation.clone(), s: selected.obj.scale.clone() }; });
+tc.addEventListener('mouseUp', () => {
+  if (!selected || !_tBefore) return; const o = selected.obj, b = _tBefore; const a = { p: o.position.clone(), r: o.rotation.clone(), s: o.scale.clone() }; _tBefore = null;
+  if (b.p.equals(a.p) && b.r.equals(a.r) && b.s.equals(a.s)) return;
+  pushCmd({ undo: () => { o.position.copy(b.p); o.rotation.copy(b.r); o.scale.copy(b.s); syncInspector(); }, redo: () => { o.position.copy(a.p); o.rotation.copy(a.r); o.scale.copy(a.s); syncInspector(); } });
+});
+
+// ── editor state ──
+const entities = [];           // { id, name, obj(THREE.Object3D) }
+let selected = null, gltf = new GLTFLoader();
+function uid() { return 'o' + Date.now().toString(36) + Math.floor(Math.random() * 1e3).toString(36); }
+
+// ── history (undo/redo, Command pattern lite) ──
+const hist = [], redo = []; let _loading = false;
+function pushCmd(c) { if (_loading) return; hist.push(c); if (hist.length > 120) hist.shift(); redo.length = 0; scheduleAutosave(); }
+function doUndo() { const c = hist.pop(); if (!c) return; c.undo(); redo.push(c); toast('↶ undo'); }
+function doRedo() { const c = redo.pop(); if (!c) return; c.redo(); hist.push(c); toast('↷ redo'); }
+function _attach(e) { if (!entities.includes(e)) entities.push(e); scene.add(e.obj); renderTree(); $('#empty').style.display = 'none'; invalidate(); }
+function _detach(e) { scene.remove(e.obj); const i = entities.indexOf(e); if (i >= 0) entities.splice(i, 1); if (selected === e) select(null); tweens.delete(e); _toggled.delete(e); if (physBodies) physBodies.delete(e); if (e.tile && typeof tileGrid !== 'undefined') tileGrid.delete(e.tile.cx + ',' + e.tile.cz + ',' + (e.tile.level || 0)); if (_hovered === e) _hovered = null; renderTree(); if (!entities.length) $('#empty').style.display = 'flex'; invalidate(); }
+function disposeObject(obj) { obj.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { for (const key in m) { const v = m[key]; if (v && v.isTexture) v.dispose(); } m.dispose(); }); }); }
+function addEntity(obj, name) {
+  obj.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  const e = { id: uid(), name: name || obj.name || 'Object', obj, fx: { active: null, trigger: 'none', dur: 0.4 } };
+  obj.userData._eid = e.id; _attach(e); select(e);
+  pushCmd({ undo: () => _detach(e), redo: () => { _attach(e); select(e); } });
+  return e;
+}
+function select(e) {
+  selected = e || null;
+  if (e) { tc.attach(e.obj); } else { tc.detach(); }
+  renderTree(); syncInspector(); _tlInfo(); updateGameBtns(); invalidate();
+}
+function removeSelected() {
+  if (!selected) return; const e = selected; _detach(e);
+  pushCmd({ undo: () => { _attach(e); select(e); }, redo: () => _detach(e) });
+}
+
+// ── primitives ──
+function prim(kind) {
+  let g;
+  if (kind === 'box') g = new THREE.BoxGeometry(1, 1, 1);
+  else if (kind === 'sphere') g = new THREE.SphereGeometry(0.6, 32, 24);
+  else if (kind === 'cylinder') g = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+  else if (kind === 'cone') g = new THREE.ConeGeometry(0.6, 1.2, 32);
+  else if (kind === 'torus') g = new THREE.TorusGeometry(0.5, 0.18, 20, 48);
+  else g = new THREE.PlaneGeometry(2, 2);
+  const m = new THREE.Mesh(g, new THREE.MeshPhysicalMaterial({ color: 0x8b9bdc, roughness: 0.55, metalness: 0.1 }));
+  if (kind === 'plane') m.rotation.x = -Math.PI / 2; else m.position.y = 0.6;
+  return addEntity(m, kind[0].toUpperCase() + kind.slice(1));
+}
+
+// ── prompt → primitives spec (lightweight three.js) ──
+function buildSpec(spec) {
+  const grp = new THREE.Group(); grp.name = (spec && spec.name) || 'GenObject';
+  (spec.parts || []).forEach(p => {
+    const sz = p.size || [1, 1, 1]; let g;
+    if (p.shape === 'cylinder') g = new THREE.CylinderGeometry(sz[0], sz[0], sz[1] || 1, 24);
+    else if (p.shape === 'sphere') g = new THREE.SphereGeometry(sz[0], 24, 18);
+    else if (p.shape === 'cone') g = new THREE.ConeGeometry(sz[0], sz[1] || 1, 24);
+    else g = new THREE.BoxGeometry(sz[0] || 1, sz[1] || 1, sz[2] || 1);
+    const m = new THREE.Mesh(g, new THREE.MeshPhysicalMaterial({ color: new THREE.Color(p.color || '#cccccc'), roughness: 0.6, metalness: 0.08 }));
+    if (p.pos) m.position.set(p.pos[0] || 0, p.pos[1] || 0, p.pos[2] || 0);
+    if (p.rot) m.rotation.set(p.rot[0] || 0, p.rot[1] || 0, p.rot[2] || 0);
+    grp.add(m);
+  });
+  return grp;
+}
+async function genObject() {
+  const p = ($('#prompt').value || '').trim(); if (!p) return toast('ketik prompt dulu');
+  toast('<span class="spin"></span> LLM bikin objek…');
+  try {
+    const r = await fetch(GEN + '/api/gen/object', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: _styled(p), style: styleVal() }) });
+    const d = await r.json();
+    if (d.ok && d.spec && d.spec.parts) { addEntity(buildSpec(d.spec), d.spec.name || p); toast('✅ "' + p + '" ditambah (' + d.spec.parts.length + ' part)'); }
+    else toast('gagal: ' + ((d && d.error) || 'no spec'));
+  } catch (e) { toast('gagal — cek koneksi/gateway'); }
+}
+async function genGlb() {
+  const p = ($('#prompt').value || '').trim(); if (!p) return toast('ketik prompt dulu');
+  toast('<span class="spin"></span> Blender bikin GLB… (~10-15s)');
+  try {
+    const r = await fetch(GEN + '/api/gen/model', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: _styled(p), style: styleVal() }) });
+    const d = await r.json();
+    if (!d.ok || !d.url) return toast('gagal: ' + ((d && d.error) || 'no model'));
+    gltf.load(GEN + d.url, g => { g.scene.name = (d.spec && d.spec.label) || p; addEntity(g.scene, g.scene.name); toast('✅ GLB "' + p + '" ditambah'); }, undefined, () => toast('gagal load GLB'));
+  } catch (e) { toast('gagal — cek koneksi/gateway'); }
+}
+
+// ── image → 3D (RunPod TripoSR, async job + poll) ──
+async function imageTo3D(file) {
+  toast('<span class="spin"></span> baca gambar…');
+  try {
+    const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
+    // draw onto white 512² canvas -> JPEG (guarantees 3-channel RGB input)
+    const S = 512, cv = document.createElement('canvas'); cv.width = cv.height = S; const cx = cv.getContext('2d');
+    cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, S, S);
+    const sc = Math.min(S / img.width, S / img.height), w = img.width * sc, h = img.height * sc;
+    cx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+    const b64 = cv.toDataURL('image/jpeg', 0.92).split(',')[1];
+    toast('<span class="spin"></span> bikin 3D… (RunPod, ~1-2 menit)');
+    const r = await fetch(GEN + '/api/gen/3d', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image: b64, format: 'glb', remove_bg: true, style: styleVal() }) });
+    const d = await r.json(); const jid = d.jobId || d.id;
+    if (!jid) return toast('gagal submit: ' + ((d && d.error) || 'no job'));
+    let tries = 0;
+    const poll = async () => {
+      if (++tries > 60) return toast('3D timeout — coba lagi');
+      try {
+        const pj = await (await fetch(GEN + '/api/gen/3d/' + jid)).json();
+        if (pj.status === 'failed' || pj.error) return toast('3D gagal (worker perlu rebuild?)');
+        const o = pj.output || {};
+        if (o.mesh_base64) { gltf.parse(_b64ToAb(o.mesh_base64), '', g => { const e = addEntity(g.scene || (g.scenes && g.scenes[0]), file.name.replace(/\.[^.]+$/, '') || 'Model'); if (e) { const b = new THREE.Box3().setFromObject(e.obj), s = b.getSize(new THREE.Vector3()); const k = 2 / (Math.max(s.x, s.y, s.z) || 1); e.obj.scale.multiplyScalar(k); } toast('✅ 3D dari gambar siap'); invalidate(); }, () => toast('gagal parse GLB')); return; }
+        const url = o.url || o.glb || o.model || o.mesh || o.glbUrl || o.file || (typeof o === 'string' ? o : null);
+        if (url) { const full = /^https?:/.test(url) ? url : (GEN + url); gltf.load(full, g => { addEntity(g.scene || (g.scenes && g.scenes[0]), file.name.replace(/\.[^.]+$/, '') || 'Model'); toast('✅ 3D dari gambar siap'); }, undefined, () => toast('gagal load GLB')); return; }
+        setTimeout(poll, 3000);
+      } catch (e) { setTimeout(poll, 3000); }
+    };
+    poll();
+  } catch (e) { toast('gagal — cek gambar/koneksi'); }
+}
+
+// ── scene tree ──
+function renderTree() {
+  const t = $('#tree');
+  t.innerHTML = entities.length ? entities.map(e =>
+    `<div class="it ${selected === e ? 'sel' : ''}" data-id="${e.id}"><span class="ico">${e.isPlayer ? '🎮' : e.npc ? '🧍' : e.trigger ? '🎯' : '🧩'}</span><span>${e.name}</span></div>`
+  ).join('') : '<div class="muted">belum ada objek</div>';
+  t.querySelectorAll('.it').forEach(el => el.onclick = () => select(entities.find(x => x.id === el.dataset.id)));
+}
+
+// ── inspector (transform + PBR material) ──
+function firstMat(obj) { let m = null; obj.traverse(o => { if (!m && o.isMesh && o.material && !Array.isArray(o.material)) m = o.material; }); return m; }
+function setMatAll(obj, fn) { obj.traverse(o => { if (o.isMesh && o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(fn); }); }
+// ── material presets (3D-artist curated) ──
+const MAT_PRESETS = {
+  plastic:  m => { m.roughness = 0.4;  m.metalness = 0.0; if ('clearcoat' in m) { m.clearcoat = 0.3; m.clearcoatRoughness = 0.25; } if ('transmission' in m) { m.transmission = 0; m.transparent = false; } },
+  metal:    m => { m.roughness = 0.25; m.metalness = 1.0; if ('clearcoat' in m) m.clearcoat = 0; if ('transmission' in m) { m.transmission = 0; m.transparent = false; } },
+  chrome:   m => { m.roughness = 0.02; m.metalness = 1.0; if ('transmission' in m) { m.transmission = 0; m.transparent = false; } },
+  gold:     m => { if (m.color) m.color.set('#ffcf4d'); m.roughness = 0.3; m.metalness = 1.0; },
+  glass:    m => { m.roughness = 0.05; m.metalness = 0.0; if ('transmission' in m) { m.transmission = 1.0; m.ior = 1.5; m.thickness = 0.5; m.transparent = true; } },
+  carpaint: m => { m.roughness = 0.4;  m.metalness = 0.6; if ('clearcoat' in m) { m.clearcoat = 1.0; m.clearcoatRoughness = 0.08; } },
+  neon:     m => { if (m.emissive && m.color) m.emissive.copy(m.color); if ('emissiveIntensity' in m) m.emissiveIntensity = 2.5; m.roughness = 0.5; m.metalness = 0.0; },
+  concrete: m => { m.roughness = 0.95; m.metalness = 0.0; if ('clearcoat' in m) m.clearcoat = 0; },
+};
+function applyMatPreset(obj, name) { const fn = MAT_PRESETS[name]; if (!fn) return; setMatAll(obj, m => { fn(m); m.needsUpdate = true; }); toast('🎨 ' + name); }
+// ── procedural patterns (Canvas2D) + layer-stack (Spline-style compositing) ──
+function _drawPat(x, kind, col, S) {
+  const dark = '#15161f';
+  if (kind === 'fill') { x.fillStyle = col; x.fillRect(0, 0, S, S); }
+  else if (kind === 'checker') { const n = 8, s = S / n; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { x.fillStyle = (i + j) % 2 ? col : dark; x.fillRect(i * s, j * s, s, s); } }
+  else if (kind === 'stripes') { const w = S / 8; for (let i = 0; i < S; i += w) { x.fillStyle = (i / w) % 2 ? col : dark; x.fillRect(i, 0, w, S); } }
+  else if (kind === 'dots') { x.fillStyle = dark; x.fillRect(0, 0, S, S); x.fillStyle = col; const st = S / 4; for (let i = st / 2; i < S; i += st) for (let j = st / 2; j < S; j += st) { x.beginPath(); x.arc(i, j, S / 16, 0, Math.PI * 2); x.fill(); } }
+  else if (kind === 'gradient') { const g = x.createLinearGradient(0, 0, 0, S); g.addColorStop(0, col); g.addColorStop(1, dark); x.fillStyle = g; x.fillRect(0, 0, S, S); }
+  else { const im = x.createImageData(S, S); for (let i = 0; i < im.data.length; i += 4) { const v = 50 + Math.random() * 170 | 0; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } x.putImageData(im, 0, 0); }
+}
+function makePattern(kind, base) {
+  const c = document.createElement('canvas'); c.width = c.height = 256; _drawPat(c.getContext('2d'), kind, base || '#8b9bdc', 256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+function applyTexture(obj, kind) {
+  const m0 = firstMat(obj); const base = m0 && m0.color ? '#' + m0.color.getHexString() : '#8b9bdc';
+  const tex = kind === 'none' ? null : makePattern(kind, base);
+  setMatAll(obj, m => { if ('map' in m) { if (m.map && m.map.dispose) m.map.dispose(); m.map = tex; m.needsUpdate = true; } });
+  toast(kind === 'none' ? 'texture dihapus' : '🖼 ' + kind);
+}
+// layer stack: e.matStack = [{type,color,blend,opacity,on}] composited bottom->top into the material map
+function composeStack(e) {
+  const st = (e.matStack || []).filter(l => l.on);
+  if (!st.length) { setMatAll(e.obj, m => { if ('map' in m && m.map) { m.map.dispose(); m.map = null; m.needsUpdate = true; } }); return; }
+  const S = 256, c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d');
+  const tmp = document.createElement('canvas'); tmp.width = tmp.height = S; const tx = tmp.getContext('2d');
+  st.forEach(l => { tx.clearRect(0, 0, S, S); _drawPat(tx, l.type, l.color || '#8b9bdc', S); x.globalCompositeOperation = l.blend || 'source-over'; x.globalAlpha = l.opacity == null ? 1 : l.opacity; x.drawImage(tmp, 0, 0); });
+  x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  setMatAll(e.obj, m => { if ('map' in m) { if (m.map && m.map.dispose) m.map.dispose(); m.map = t; m.needsUpdate = true; } });
+}
+function renderStack(e) {
+  const box = $('#matStack'); if (!box) return; const st = e.matStack || [];
+  const BL = ['source-over', 'multiply', 'screen', 'overlay'];
+  box.innerHTML = st.length ? st.map((l, i) => `<div class="layRow" data-i="${i}" style="display:flex;align-items:center;gap:3px;margin:2px 0">
+    <input type="checkbox" class="lOn" ${l.on ? 'checked' : ''} title="on/off">
+    <span style="width:48px;font-size:10px;color:var(--mut)">${l.type}</span>
+    <input type="color" class="lCol" value="${l.color || '#8b9bdc'}" style="width:22px;height:18px;padding:0;border:0;background:none">
+    <select class="lBlend" style="font-size:10px;background:#0c0e1a;color:#fff;border:1px solid var(--line);border-radius:4px;flex:1">${BL.map(b => `<option ${l.blend === b ? 'selected' : ''}>${b}</option>`).join('')}</select>
+    <input type="range" class="lOp" min="0" max="1" step="0.05" value="${l.opacity == null ? 1 : l.opacity}" style="width:42px">
+    <button class="btn lUp" style="padding:2px 5px;font-size:10px">↑</button><button class="btn lDel" style="padding:2px 5px;font-size:10px">✕</button>
+  </div>`).join('') : '<div class="muted" style="font-size:11px">belum ada layer — tambah di bawah</div>';
+  box.querySelectorAll('.layRow').forEach(row => { const i = +row.dataset.i, l = st[i];
+    row.querySelector('.lOn').onchange = ev => { l.on = ev.target.checked; composeStack(e); invalidate(); };
+    row.querySelector('.lCol').oninput = ev => { l.color = ev.target.value; composeStack(e); invalidate(); };
+    row.querySelector('.lBlend').onchange = ev => { l.blend = ev.target.value; composeStack(e); invalidate(); };
+    row.querySelector('.lOp').oninput = ev => { l.opacity = +ev.target.value; composeStack(e); invalidate(); };
+    row.querySelector('.lUp').onclick = () => { if (i > 0) { const t = st[i - 1]; st[i - 1] = st[i]; st[i] = t; renderStack(e); composeStack(e); invalidate(); } };
+    row.querySelector('.lDel').onclick = () => { st.splice(i, 1); renderStack(e); composeStack(e); invalidate(); };
+  });
+}
+function syncInspector() {
+  const box = $('#insp');
+  if (!selected) { box.innerHTML = '<div class="muted">Pilih objek untuk edit.</div>'; return; }
+  const o = selected.obj, mat = firstMat(o);
+  const n = (v) => (Math.round(v * 1000) / 1000);
+  const isPhys = mat && ('clearcoat' in mat);
+  const physHtml = isPhys ? `<div class="lbl">Clearcoat <span id="ccv">${n(mat.clearcoat ?? 0)}</span></div><input type="range" id="mcc" min="0" max="1" step="0.01" value="${mat.clearcoat ?? 0}">
+      <div class="lbl">Transmission · kaca <span id="tmv">${n(mat.transmission ?? 0)}</span></div><input type="range" id="mtm" min="0" max="1" step="0.01" value="${mat.transmission ?? 0}">` : '';
+  box.innerHTML = `
+    <div class="grp"><div class="lbl">Nama</div><input type="text" id="i-name" value="${selected.name}"></div>
+    <div class="grp"><div class="lbl">Posisi</div><div class="row3">
+      <input type="number" step="0.1" id="px" value="${n(o.position.x)}"><input type="number" step="0.1" id="py" value="${n(o.position.y)}"><input type="number" step="0.1" id="pz" value="${n(o.position.z)}"></div></div>
+    <div class="grp"><div class="lbl">Rotasi (°)</div><div class="row3">
+      <input type="number" step="1" id="rx" value="${n(o.rotation.x*180/Math.PI)}"><input type="number" step="1" id="ry" value="${n(o.rotation.y*180/Math.PI)}"><input type="number" step="1" id="rz" value="${n(o.rotation.z*180/Math.PI)}"></div></div>
+    <div class="grp"><div class="lbl">Skala</div><div class="row3">
+      <input type="number" step="0.1" id="sx" value="${n(o.scale.x)}"><input type="number" step="0.1" id="sy" value="${n(o.scale.y)}"><input type="number" step="0.1" id="sz" value="${n(o.scale.z)}"></div></div>
+    ${mat ? `<div class="grp"><div class="lbl">Material (PBR)</div>
+      <input type="color" id="mcol" value="#${mat.color ? mat.color.getHexString() : 'ffffff'}">
+      <div class="lbl">🎨 Preset</div>
+      <div id="matPresets" style="display:flex;flex-wrap:wrap;gap:4px">
+        <button class="btn" data-mp="plastic">Plastic</button><button class="btn" data-mp="metal">Metal</button><button class="btn" data-mp="glass">Glass</button><button class="btn" data-mp="chrome">Chrome</button><button class="btn" data-mp="carpaint">Car Paint</button><button class="btn" data-mp="gold">Gold</button><button class="btn" data-mp="neon">Neon</button><button class="btn" data-mp="concrete">Concrete</button>
+      </div>
+      <div class="lbl">🖼 Texture</div>
+      <div id="matTex" style="display:flex;flex-wrap:wrap;gap:4px">
+        <button class="btn" data-tx="checker">Checker</button><button class="btn" data-tx="stripes">Stripes</button><button class="btn" data-tx="dots">Dots</button><button class="btn" data-tx="gradient">Gradient</button><button class="btn" data-tx="noise">Noise</button><button class="btn" data-tx="none" title="hapus texture">✕</button>
+      </div>
+      <div class="lbl">🧱 Layers <span class="muted" style="font-size:10px">(blend stack)</span></div>
+      <div id="matStack"></div>
+      <select id="layAdd" style="width:100%;margin-top:4px;background:#0c0e1a;color:#fff;border:1px solid var(--line);border-radius:6px;padding:4px;font-size:11px"><option value="">+ tambah layer…</option><option value="fill">Fill</option><option value="checker">Checker</option><option value="stripes">Stripes</option><option value="dots">Dots</option><option value="gradient">Gradient</option><option value="noise">Noise</option></select>
+      <div class="lbl">Roughness <span id="rv">${n(mat.roughness ?? 0.5)}</span></div><input type="range" id="mr" min="0" max="1" step="0.01" value="${mat.roughness ?? 0.5}">
+      <div class="lbl">Metalness <span id="mv">${n(mat.metalness ?? 0)}</span></div><input type="range" id="mm" min="0" max="1" step="0.01" value="${mat.metalness ?? 0}">
+      <div class="lbl">Emissive</div><input type="color" id="mem" value="#${mat.emissive ? mat.emissive.getHexString() : '000000'}">
+      <div class="lbl">Emissive Glow <span id="eiv">${n(mat.emissiveIntensity ?? 1)}</span></div><input type="range" id="mei" min="0" max="4" step="0.05" value="${mat.emissiveIntensity ?? 1}">
+      ${physHtml}
+      </div>` : ''}
+    <div class="grp"><div class="lbl">⚡ Interactivity</div>
+      <button class="btn" id="fxSnap" style="width:100%;margin-bottom:6px">📸 ${selected.fx && selected.fx.active ? 'Update' : 'Set'} Active State</button>
+      ${selected.fx && selected.fx.active ? `<button class="btn" id="fxClear" style="width:100%;margin-bottom:6px">✕ Hapus Active State</button>` : ''}
+      <div class="lbl">Trigger</div>
+      <select id="fxTrig" style="width:100%;background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:6px;padding:5px;font:inherit"><option value="none">— none —</option><option value="hover">Hover</option><option value="click">Click (toggle)</option></select>
+      <div class="lbl">Durasi <span id="fxdv">${selected.fx ? selected.fx.dur : 0.4}</span>s</div><input type="range" id="fxDur" min="0.1" max="2" step="0.05" value="${selected.fx ? selected.fx.dur : 0.4}">
+      <div class="lbl">🌍 Physics (saat Play)</div>
+      <select id="phys" style="width:100%;background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:6px;padding:5px;font:inherit"><option value="none">— none —</option><option value="dynamic">Dynamic (jatuh / tabrakan)</option><option value="static">Static (lantai / dinding)</option><option value="spinner">Spinner — motor ⚙️ (gear/turbine)</option></select>
+      <div class="lbl">🔌 Behaviour <span class="muted" style="font-size:10px">(saat Play)</span></div>
+      <div id="behList"></div>
+      <select id="behAdd" style="width:100%;margin-top:4px;background:#0c0e1a;color:#fff;border:1px solid var(--line);border-radius:6px;padding:4px;font-size:11px"><option value="">+ tambah behaviour…</option><option value="spin">Spin (putar)</option><option value="bob">Bob (naik-turun)</option><option value="float">Float (melayang)</option><option value="pulse">Pulse (denyut)</option><option value="orbit">Orbit (memutar)</option></select>
+    </div>
+    <div class="grp"><div class="lbl">🎮 Game Trigger <span class="muted" style="font-size:10px">(zona — saat Play)</span></div>
+      <label class="muted" style="font-size:11px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="trgOn" ${selected.trigger ? 'checked' : ''}> jadikan objek ini zona trigger</label>
+      ${selected.trigger ? `
+      <div class="lbl">Saat</div>
+      <select id="trgWhen" style="width:100%;background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:6px;padding:5px;font:inherit"><option value="enter">Player masuk</option><option value="exit">Player keluar</option></select>
+      <div class="lbl">Aksi</div>
+      <select id="trgAct" style="width:100%;background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:6px;padding:5px;font:inherit"><option value="win">🏆 Menang</option><option value="lose">💀 Kalah</option><option value="message">💬 Pesan (toast)</option><option value="show">👁 Tampilkan target</option><option value="hide">🚫 Sembunyikan target</option><option value="tween">✨ Animasi target (active state)</option></select>
+      <input type="text" id="trgMsg" placeholder="teks pesan / banner…" value="${(selected.trigger.msg || '').replace(/"/g, '&quot;')}" style="width:100%;margin-top:5px;background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:6px;padding:5px;font:inherit">
+      <div class="lbl">Target <span class="muted" style="font-size:10px">(utk show/hide/animasi)</span></div>
+      <select id="trgTarget" style="width:100%;background:#0c0e1a;border:1px solid var(--line);color:#fff;border-radius:6px;padding:5px;font:inherit"><option value="">— diri sendiri —</option>${entities.filter(x => x !== selected).map(x => `<option value="${x.id}" ${selected.trigger.target === x.id ? 'selected' : ''}>${x.name}</option>`).join('')}</select>
+      <label class="muted" style="font-size:11px;display:flex;align-items:center;gap:5px;margin-top:5px"><input type="checkbox" id="trgOnce" ${selected.trigger.once ? 'checked' : ''}> sekali saja</label>` : ''}
+    </div>`;
+  $('#i-name').oninput = e => { selected.name = e.target.value; renderTree(); };
+  const tf = () => {
+    o.position.set(+$('#px').value || 0, +$('#py').value || 0, +$('#pz').value || 0);
+    o.rotation.set((+$('#rx').value||0)*Math.PI/180, (+$('#ry').value||0)*Math.PI/180, (+$('#rz').value||0)*Math.PI/180);
+    o.scale.set(+$('#sx').value || 1, +$('#sy').value || 1, +$('#sz').value || 1);
+  };
+  ['px','py','pz','rx','ry','rz','sx','sy','sz'].forEach(id => { const el = $('#' + id); if (el) el.oninput = tf; });
+  if (mat) {
+    $('#mcol').oninput = e => setMatAll(o, m => m.color && m.color.set(e.target.value));
+    document.querySelectorAll('#matPresets button').forEach(btn => btn.onclick = () => { applyMatPreset(o, btn.dataset.mp); syncInspector(); invalidate(); });
+    document.querySelectorAll('#matTex button').forEach(btn => btn.onclick = () => { applyTexture(o, btn.dataset.tx); invalidate(); });
+    if ($('#matStack')) {
+      if (!selected.matStack) selected.matStack = [];
+      renderStack(selected);
+      $('#layAdd').onchange = ev => { const k = ev.target.value; if (!k) return; const mm = firstMat(o); selected.matStack.push({ type: k, color: (mm && mm.color ? '#' + mm.color.getHexString() : '#8b9bdc'), blend: 'source-over', opacity: 1, on: true }); ev.target.value = ''; renderStack(selected); composeStack(selected); invalidate(); };
+    }
+    $('#mr').oninput = e => { $('#rv').textContent = e.target.value; setMatAll(o, m => 'roughness' in m && (m.roughness = +e.target.value)); };
+    $('#mm').oninput = e => { $('#mv').textContent = e.target.value; setMatAll(o, m => 'metalness' in m && (m.metalness = +e.target.value)); };
+    $('#mem').oninput = e => setMatAll(o, m => m.emissive && m.emissive.set(e.target.value));
+    if ($('#mei')) $('#mei').oninput = e => { $('#eiv').textContent = e.target.value; setMatAll(o, m => 'emissiveIntensity' in m && (m.emissiveIntensity = +e.target.value)); };
+    if ($('#mcc')) $('#mcc').oninput = e => { $('#ccv').textContent = e.target.value; setMatAll(o, m => 'clearcoat' in m && (m.clearcoat = +e.target.value)); };
+    if ($('#mtm')) $('#mtm').oninput = e => { $('#tmv').textContent = e.target.value; setMatAll(o, m => { if ('transmission' in m) { m.transmission = +e.target.value; m.transparent = +e.target.value > 0; m.needsUpdate = true; } }); };
+  }
+  if (!selected.fx) selected.fx = { active: null, trigger: 'none', dur: 0.4 };
+  if ($('#fxTrig')) {
+    $('#fxTrig').value = selected.fx.trigger;
+    $('#fxSnap').onclick = () => { selected.fx.active = snapshotState(selected.obj); toast('📸 Active state disimpan'); syncInspector(); };
+    if ($('#fxClear')) $('#fxClear').onclick = () => { selected.fx.active = null; toast('Active state dihapus'); syncInspector(); };
+    $('#fxTrig').onchange = e => { selected.fx.trigger = e.target.value; };
+    $('#fxDur').oninput = e => { $('#fxdv').textContent = e.target.value; selected.fx.dur = +e.target.value; };
+    if ($('#phys')) { if (!selected.phys) selected.phys = 'none'; $('#phys').value = selected.phys; $('#phys').onchange = e => { selected.phys = e.target.value; }; }
+    if ($('#behAdd')) { if (!selected.behaviours) selected.behaviours = []; renderBeh(selected); $('#behAdd').onchange = ev => { const a = ev.target.value; if (!a) return; selected.behaviours.push({ act: a, speed: 1 }); ev.target.value = ''; renderBeh(selected); }; }
+    if ($('#trgOn')) { $('#trgOn').onchange = ev => { if (ev.target.checked) { if (!selected.trigger) selected.trigger = { on: 'enter', act: 'win', msg: '', target: '', once: true }; } else selected.trigger = null; scheduleAutosave(); syncInspector(); }; }
+    if (selected.trigger && $('#trgWhen')) {
+      $('#trgWhen').value = selected.trigger.on; $('#trgWhen').onchange = ev => { selected.trigger.on = ev.target.value; scheduleAutosave(); };
+      $('#trgAct').value = selected.trigger.act; $('#trgAct').onchange = ev => { selected.trigger.act = ev.target.value; scheduleAutosave(); };
+      $('#trgMsg').oninput = ev => { selected.trigger.msg = ev.target.value; scheduleAutosave(); };
+      $('#trgTarget').onchange = ev => { selected.trigger.target = ev.target.value; scheduleAutosave(); };
+      $('#trgOnce').onchange = ev => { selected.trigger.once = ev.target.checked; scheduleAutosave(); };
+    }
+  }
+}
+
+// ── pick (click to select) ──
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(); let down = null;
+canvas.addEventListener('pointerdown', e => down = { x: e.clientX, y: e.clientY });
+canvas.addEventListener('pointerup', e => {
+  if (playMode || buildMode) return;
+  if (!down || Math.abs(e.clientX - down.x) > 4 || Math.abs(e.clientY - down.y) > 4) return;  // ignore drags
+  const b = canvas.getBoundingClientRect(); mouse.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects(entities.map(x => x.obj), true)[0];
+  if (hit) { let o = hit.object; while (o && !o.userData._eid) o = o.parent; const e2 = o && entities.find(x => x.id === o.userData._eid); if (e2) select(e2); }
+});
+
+// ── World / Tile Builder (paint a grid → instant level / city blockout: The Sims / city-sim style) ──
+let buildMode = false, tileType = 'grass', brushSize = 1, buildLevel = 0;
+const tileGrid = new Map();                                   // "cx,cz,level" -> entity
+const _groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+function _tbox(w, h, d, col, yOff) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color: col, roughness: 0.92, metalness: 0 })); m.position.y = (yOff != null ? yOff : h / 2); return m; }
+function _makeTree() { const g = new THREE.Group(); const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.5, 8), new THREE.MeshStandardMaterial({ color: 0x6b4a2b })); tr.position.y = 0.25; const lv = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.75, 10), new THREE.MeshStandardMaterial({ color: 0x3a7d2c })); lv.position.y = 0.78; g.add(tr, lv); return g; }
+function _makeHouse() { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 0.8), new THREE.MeshStandardMaterial({ color: 0xd9b48a })); b.position.y = 0.3; const r = new THREE.Mesh(new THREE.ConeGeometry(0.66, 0.42, 4), new THREE.MeshStandardMaterial({ color: 0xa0432e })); r.position.y = 0.81; r.rotation.y = Math.PI / 4; g.add(b, r); return g; }
+function _makeFence() { const m = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 0.09), new THREE.MeshStandardMaterial({ color: 0x9a7b4f, roughness: 0.9 })); m.position.y = 0.45; return m; }
+function _makeLamp() { const g = new THREE.Group(); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 8), new THREE.MeshStandardMaterial({ color: 0x444a55 })); pole.position.y = 0.45; const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshStandardMaterial({ color: 0xffe9a0, emissive: 0xffd060, emissiveIntensity: 0.9 })); bulb.position.y = 0.96; g.add(pole, bulb); return g; }
+const TILES = {
+  grass: { n: '🟩 Grass', make: () => _tbox(1, 0.1, 1, 0x4a7c3a) },
+  floor: { n: '⬜ Floor', make: () => _tbox(1, 0.1, 1, 0xbfc4cc) },
+  road: { n: '⬛ Road', make: () => _tbox(1, 0.06, 1, 0x2a2e38) },
+  water: { n: '🟦 Water', make: () => { const m = _tbox(1, 0.08, 1, 0x2f6fb0); m.material.transparent = true; m.material.opacity = 0.85; m.material.roughness = 0.2; return m; } },
+  wall: { n: '🧱 Wall', make: () => _tbox(1, 1, 1, 0x8a8f99, 0.5) },
+  tree: { n: '🌳 Tree', make: _makeTree },
+  house: { n: '🏠 House', make: _makeHouse },
+  fence: { n: '🪵 Fence', make: _makeFence },
+  lamp: { n: '💡 Lamp', make: _makeLamp },
+  person: { n: '🧍 NPC', make: makeNPCMesh },
+};
+const _cellKey = (cx, cz) => cx + ',' + cz;
+function _addTileEntity(obj, name) { obj.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); const e = { id: uid(), name, obj, fx: { active: null, trigger: 'none', dur: 0.4 } }; obj.userData._eid = e.id; entities.push(e); scene.add(obj); $('#empty').style.display = 'none'; return e; }
+function placeTileAt(cx, cz) {
+  const lvl = buildLevel, key = cx + ',' + cz + ',' + lvl, ex = tileGrid.get(key);
+  if (tileType === 'erase') { if (ex) { _detach(ex); } return; }
+  if (ex) { if (ex.tile && ex.tile.type === tileType) return; _detach(ex); }
+  const def = TILES[tileType]; if (!def) return;
+  const obj = def.make(); obj.position.x = cx; obj.position.z = cz; obj.position.y += lvl;
+  const ent = _addTileEntity(obj, def.n.replace(/^\S+\s/, '') + ' ' + cx + ',' + cz + (lvl ? ('@' + lvl) : ''));
+  ent.tile = { type: tileType, cx, cz, level: lvl }; if (tileType === 'person') ent.npc = { speed: 1.4, radius: 6 }; tileGrid.set(key, ent); invalidate();
+}
+function paintBrush(cx, cz) { const h = Math.floor((brushSize - 1) / 2); for (let i = 0; i < brushSize; i++) for (let j = 0; j < brushSize; j++) placeTileAt(cx + i - h, cz + j - h); }
+function _groundCell(px, py) { const b = canvas.getBoundingClientRect(); mouse.set(((px - b.left) / b.width) * 2 - 1, -((py - b.top) / b.height) * 2 + 1); ray.setFromCamera(mouse, camera); const pt = new THREE.Vector3(); if (!ray.ray.intersectPlane(_groundPlane, pt)) return null; return { cx: Math.round(pt.x), cz: Math.round(pt.z) }; }
+let _painting = false, _lastCell = null;
+function renderTilePalette() {
+  const box = $('#tilePalette'); if (!box) return;
+  const ctrl = `<span class="tctrl" title="brush size">🖌<button class="tb2 ${brushSize === 1 ? 'on' : ''}" data-b="1">1</button><button class="tb2 ${brushSize === 2 ? 'on' : ''}" data-b="2">2</button><button class="tb2 ${brushSize === 3 ? 'on' : ''}" data-b="3">3</button></span><span class="tctrl" title="height level (stack tiles → buildings)">⬍<button class="tb2" data-lv="-1">▼</button><b style="min-width:16px;display:inline-block;text-align:center;color:var(--acc)">${buildLevel}</b><button class="tb2" data-lv="1">▲</button></span>`;
+  const tiles = Object.entries(TILES).map(([k, v]) => `<button class="tbtn ${tileType === k ? 'on' : ''}" data-t="${k}">${v.n}</button>`).join('') + `<button class="tbtn ${tileType === 'erase' ? 'on' : ''}" data-t="erase">🧹 Erase</button>`;
+  box.innerHTML = ctrl + tiles;
+  box.querySelectorAll('.tbtn').forEach(b => b.onclick = () => { tileType = b.dataset.t; renderTilePalette(); });
+  box.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { brushSize = +b.dataset.b; renderTilePalette(); });
+  box.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => { buildLevel = Math.max(0, buildLevel + (+b.dataset.lv)); renderTilePalette(); });
+}
+function setBuildMode(on) {
+  buildMode = on !== undefined ? on : !buildMode;
+  $('#buildBtn').classList.toggle('on', buildMode);
+  $('#tilePalette').classList.toggle('show', buildMode);
+  controls.mouseButtons.left = buildMode ? CameraControls.ACTION.NONE : CameraControls.ACTION.ROTATE;
+  canvas.style.cursor = buildMode ? 'crosshair' : 'default';
+  if (buildMode) { tc.detach(); renderTilePalette(); toast('🧱 Build mode — klik/seret di grid utk lukis tile · kanan = geser · Esc = keluar'); } else toast('Build mode off');
+  invalidate();
+}
+canvas.addEventListener('pointerdown', e => { if (!buildMode || playMode || e.button !== 0) return; _painting = true; const c = _groundCell(e.clientX, e.clientY); if (c) { paintBrush(c.cx, c.cz); _lastCell = _cellKey(c.cx, c.cz); } });
+canvas.addEventListener('pointermove', e => { if (!buildMode || playMode || !_painting) return; const c = _groundCell(e.clientX, e.clientY); if (c) { const k = _cellKey(c.cx, c.cz); if (k !== _lastCell) { paintBrush(c.cx, c.cz); _lastCell = k; } } });
+addEventListener('pointerup', () => { if (_painting) { _painting = false; _lastCell = null; renderTree(); scheduleAutosave(); } });
+
+// ── NPC wandering agents (city life — The Sims / city-sim: citizens walk around on their own in Play) ──
+function makeNPCMesh() { const g = new THREE.Group(); const body = new THREE.Mesh(THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.16, 0.34, 4, 8) : new THREE.CylinderGeometry(0.16, 0.16, 0.5, 10), new THREE.MeshStandardMaterial({ color: 0x4f86c6, roughness: 0.7 })); body.position.y = 0.34; const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), new THREE.MeshStandardMaterial({ color: 0xf0c39a, roughness: 0.6 })); head.position.y = 0.72; g.add(body, head); return g; }
+function makeNPC() { if (!selected) return toast('pilih objek dulu utk jadi NPC'); if (selected.npc) selected.npc = null; else selected.npc = { speed: 1.4, radius: 6 }; renderTree(); updateGameBtns(); scheduleAutosave(); toast(selected.npc ? '🧍 NPC — jalan sendiri (wander) saat ▶ Play' : 'NPC dilepas'); }
+function _npcNewTarget(e) { const n = e.npc, home = e._base ? e._base.pos : [e.obj.position.x, 0, e.obj.position.z], R = n.radius || 6; n._tgt = { x: home[0] + (Math.random() * 2 - 1) * R, z: home[2] + (Math.random() * 2 - 1) * R }; }
+function stepNPCs(dt) { let any = false; for (const e of entities) { const n = e.npc; if (!n) continue; any = true; const o = e.obj; if (!n._tgt) _npcNewTarget(e); const dx = n._tgt.x - o.position.x, dz = n._tgt.z - o.position.z, d = Math.hypot(dx, dz); if (d < 0.12) { _npcNewTarget(e); } else { const mv = Math.min((n.speed || 1.4) * dt, d); o.position.x += dx / d * mv; o.position.z += dz / d * mv; o.rotation.y = Math.atan2(dx, dz); } } return any; }
+
+// ── interactivity: states + events + play mode (Spline-style) ──
+let playMode = false; const tweens = new Map(); const _toggled = new Set(); let _hovered = null;
+const _scA = new THREE.Color(), _scB = new THREE.Color();  // scratch (avoid per-frame Color alloc in tween)
+function snapshotState(obj) { const m = firstMat(obj); return {
+  pos: obj.position.toArray(), rot: [obj.rotation.x, obj.rotation.y, obj.rotation.z], scale: obj.scale.toArray(),
+  color: m && m.color ? '#' + m.color.getHexString() : null, emissive: m && m.emissive ? '#' + m.emissive.getHexString() : null,
+  emissiveIntensity: m && 'emissiveIntensity' in m ? m.emissiveIntensity : null }; }
+function _easeInOut(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+const _lerp = (a, b, t) => a + (b - a) * t;
+function applyLerp(obj, from, to, k) { const m = firstMat(obj);
+  obj.position.set(_lerp(from.pos[0], to.pos[0], k), _lerp(from.pos[1], to.pos[1], k), _lerp(from.pos[2], to.pos[2], k));
+  obj.rotation.set(_lerp(from.rot[0], to.rot[0], k), _lerp(from.rot[1], to.rot[1], k), _lerp(from.rot[2], to.rot[2], k));
+  obj.scale.set(_lerp(from.scale[0], to.scale[0], k), _lerp(from.scale[1], to.scale[1], k), _lerp(from.scale[2], to.scale[2], k));
+  if (m) { if (from.color && to.color && m.color) m.color.lerpColors(_scA.set(from.color), _scB.set(to.color), k);
+    if (from.emissive && to.emissive && m.emissive) m.emissive.lerpColors(_scA.set(from.emissive), _scB.set(to.emissive), k);
+    if (from.emissiveIntensity != null && to.emissiveIntensity != null && 'emissiveIntensity' in m) m.emissiveIntensity = _lerp(from.emissiveIntensity, to.emissiveIntensity, k); } }
+function startTween(e, to) { if (!e || !to) return; tweens.set(e, { from: snapshotState(e.obj), to, t: 0, dur: (e.fx && e.fx.dur) || 0.4 }); invalidate(); }
+function stepTweens(dt) { if (!tweens.size) return false; for (const [e, tw] of tweens) { tw.t += dt / tw.dur; const k = _easeInOut(Math.min(tw.t, 1)); applyLerp(e.obj, tw.from, tw.to, k); if (tw.t >= 1) tweens.delete(e); } return true; }
+function pickEntity(cx, cy) { const b = canvas.getBoundingClientRect(); mouse.set(((cx - b.left) / b.width) * 2 - 1, -((cy - b.top) / b.height) * 2 + 1); ray.setFromCamera(mouse, camera); const hit = ray.intersectObjects(entities.map(x => x.obj), true)[0]; if (!hit) return null; let o = hit.object; while (o && !o.userData._eid) o = o.parent; return o && entities.find(x => x.id === o.userData._eid); }
+// ── physics (Rapier, lazy-loaded, opt-in) — game-engine / machine-sim ──
+let RAPIER = null, physWorld = null, physReady = false; const physBodies = new Map();
+async function initPhysics() {
+  if (!entities.some(e => e.phys && e.phys !== 'none')) return;
+  try {
+    if (!RAPIER) { RAPIER = (await import('@dimforge/rapier3d-compat')).default; await RAPIER.init(); }
+    physWorld = new RAPIER.World({ x: 0, y: -9.81, z: 0 }); physBodies.clear();
+    physWorld.createCollider(RAPIER.ColliderDesc.cuboid(60, 0.1, 60).setTranslation(0, -0.1, 0).setRestitution(0.2));  // ground at y=0
+    const _b = new THREE.Box3(), _s = new THREE.Vector3(), _c = new THREE.Vector3();
+    entities.forEach(e => { if (!e.phys || e.phys === 'none') return;
+      _b.setFromObject(e.obj); _b.getSize(_s); _b.getCenter(_c);
+      const hx = Math.max(_s.x / 2, 0.05), hy = Math.max(_s.y / 2, 0.05), hz = Math.max(_s.z / 2, 0.05);
+      const dyn = (e.phys === 'dynamic' || e.phys === 'spinner');
+      const desc = (dyn ? RAPIER.RigidBodyDesc.dynamic() : RAPIER.RigidBodyDesc.fixed())
+        .setTranslation(e.obj.position.x, e.obj.position.y, e.obj.position.z)
+        .setRotation({ x: e.obj.quaternion.x, y: e.obj.quaternion.y, z: e.obj.quaternion.z, w: e.obj.quaternion.w });
+      const rb = physWorld.createRigidBody(desc);
+      if (e.isPlayer && rb.lockRotations) rb.lockRotations(true, true);   // upright player, no tipping
+      physWorld.createCollider(RAPIER.ColliderDesc.cuboid(hx, hy, hz)
+        .setTranslation(_c.x - e.obj.position.x, _c.y - e.obj.position.y, _c.z - e.obj.position.z).setRestitution(0.3), rb);
+      if (e.phys === 'spinner') {   // motorized revolute joint -> spins around Y (gear / turbine / wheel)
+        const anchor = physWorld.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(e.obj.position.x, e.obj.position.y, e.obj.position.z));
+        const jd = RAPIER.JointData.revolute({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 });
+        const joint = physWorld.createImpulseJoint(jd, anchor, rb, true);
+        if (joint.configureMotorVelocity) joint.configureMotorVelocity(e.spinSpeed || 4.0, 1.0);
+      }
+      physBodies.set(e, rb); });
+    if (!playMode) { physWorld = null; physBodies.clear(); physReady = false; return; }   // Play stopped during async init -> discard
+    physReady = physBodies.size > 0; if (physReady) toast('🌍 physics aktif (' + physBodies.size + ' body)'); invalidate();
+  } catch (err) { physReady = false; toast('physics tidak tersedia (CDN?)'); console.warn('rapier load failed', err); }
+}
+function teardownPhysics() { physReady = false; physWorld = null; physBodies.clear(); }
+function stepPhysics() { if (!physReady || !physWorld) return false; physWorld.step();
+  for (const [e, rb] of physBodies) { const t = rb.translation(), q = rb.rotation(); e.obj.position.set(t.x, t.y, t.z); e.obj.quaternion.set(q.x, q.y, q.z, q.w); } return true; }
+
+// ── Player Controller (game engine core: WASD/arrows + follow-cam in Play mode; kinematic by default, velocity-based if player has physics) ──
+const _keys = {};
+addEventListener('keydown', e => { _keys[(e.key || '').toLowerCase()] = true; });
+addEventListener('keyup', e => { _keys[(e.key || '').toLowerCase()] = false; });
+addEventListener('blur', () => { for (const k in _keys) _keys[k] = false; });   // drop stuck keys on tab-out
+function makePlayer() {
+  if (!selected) return toast('pilih objek dulu utk dijadikan Player');
+  const was = selected.isPlayer; entities.forEach(e => e.isPlayer = false); selected.isPlayer = !was;
+  if (selected.isPlayer && !selected.moveSpeed) selected.moveSpeed = 5;
+  renderTree(); updateGameBtns(); scheduleAutosave();
+  toast(selected.isPlayer ? '🎮 "' + selected.name + '" = Player — ▶ Play lalu WASD/panah (Space = lompat kalau fisika)' : 'Player dilepas');
+}
+function movePlayer(dt) {
+  const p = entities.find(e => e.isPlayer); if (!p) return false;
+  let ix = 0, iz = 0;
+  if (_keys['w'] || _keys['arrowup']) iz += 1;
+  if (_keys['s'] || _keys['arrowdown']) iz -= 1;
+  if (_keys['a'] || _keys['arrowleft']) ix -= 1;
+  if (_keys['d'] || _keys['arrowright']) ix += 1;
+  const cp = new THREE.Vector3(), ct = new THREE.Vector3(); controls.getPosition(cp); controls.getTarget(ct);
+  let fx = ct.x - cp.x, fz = ct.z - cp.z; const fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;   // camera forward (XZ)
+  const rx = -fz, rz = fx;                                                                            // camera right
+  let mx = fx * iz + rx * ix, mz = fz * iz + rz * ix; const ml = Math.hypot(mx, mz);
+  const speed = p.moveSpeed || 5, rb = physBodies.get(p); let moved = false;
+  if (rb) {
+    const lv = rb.linvel(); let vy = lv.y;
+    const grounded = Math.abs(vy) < 0.6 && Math.abs(p._pvy || 0) < 0.6;                                // 2 consecutive near-zero = resting (not the 1-frame apex)
+    if ((_keys[' '] || _keys['spacebar']) && grounded) vy = 5.2;                                       // jump only when grounded
+    p._pvy = lv.y;
+    if (ml > 0) { mx = mx / ml * speed; mz = mz / ml * speed; } else { mx = 0; mz = 0; }
+    rb.setLinvel({ x: mx, y: vy, z: mz }, true);
+  } else if (ml > 0) {
+    p.obj.position.x += mx / ml * speed * dt; p.obj.position.z += mz / ml * speed * dt; moved = true;
+  }
+  if (!(tlPlaying && camAnim.tracks.length >= 2)) controls.moveTo(p.obj.position.x, p.obj.position.y, p.obj.position.z, false);  // follow-cam (yields to active cinematic camera track)
+  return moved;
+}
+
+// ── Triggers / interaction zones (game brick #2): player enters/exits an object's volume -> fire an action ──
+const _trgBox = new THREE.Box3();
+function makeTrigger() {
+  if (!selected) return toast('pilih objek dulu utk jadi zona Trigger');
+  if (!selected.trigger) selected.trigger = { on: 'enter', act: 'win', msg: '', target: '', once: true };
+  else selected.trigger = null;
+  syncInspector(); renderTree(); updateGameBtns(); scheduleAutosave();
+  toast(selected.trigger ? '🎯 zona Trigger dibuat — atur aksinya di Inspector' : 'Trigger dilepas');
+}
+function fireTrigger(tg, e) {
+  const tgt = tg.target ? entities.find(x => x.id === tg.target) : e;
+  if (tg.act === 'win') showBanner(tg.msg || '🏆 YOU WIN', 'var(--acc)');
+  else if (tg.act === 'lose') showBanner(tg.msg || '💀 GAME OVER', '#ff5470');
+  else if (tg.act === 'message') toast(tg.msg || '…');
+  else if (tg.act === 'hide' && tgt) tgt.obj.visible = false;
+  else if (tg.act === 'show' && tgt) tgt.obj.visible = true;
+  else if (tg.act === 'tween' && tgt && tgt.fx && tgt.fx.active) startTween(tgt, tgt.fx.active);
+  invalidate();
+}
+function stepTriggers() {
+  const p = entities.find(e => e.isPlayer); if (!p) return false;
+  const pp = p.obj.position; let acted = false;
+  for (const e of entities) { const tg = e.trigger; if (!tg) continue;
+    _trgBox.setFromObject(e.obj);
+    const inside = _trgBox.containsPoint(pp), was = !!tg._inside; tg._inside = inside;
+    const hit = (tg.on === 'enter' && inside && !was) || (tg.on === 'exit' && !inside && was);
+    if (hit) { if (tg.once && tg._fired) continue; tg._fired = true; fireTrigger(tg, e); acted = true; }
+  }
+  return acted;
+}
+function showBanner(text, color) { const b = $('#banner'); if (!b) return; b.textContent = text; b.style.color = color || 'var(--acc)'; b.style.display = 'block'; b.style.animation = 'none'; void b.offsetWidth; b.style.animation = 'bannerIn .4s ease'; clearTimeout(b._t); b._t = setTimeout(() => { b.style.display = 'none'; }, 2600); invalidate(); }
+
+// ── Game Logic Cards (no-code: WHEN event → DO action; brick #3/#4) + score/variables + HUD ──
+let score = 0, gameVars = {}, gameRules = [];
+function _hitTest(a, b) { return new THREE.Box3().setFromObject(a).intersectsBox(new THREE.Box3().setFromObject(b)); }
+function updateHUD() { const h = $('#hud'); if (h) h.textContent = '⭐ Score: ' + score + Object.keys(gameVars).map(k => '  ·  ' + k + ': ' + gameVars[k]).join(''); }
+function showHUD(on) { const h = $('#hud'); if (h) h.classList.toggle('on', !!on && gameRules.length > 0); }
+function doRuleAction(r) {
+  if (r.act === 'scoreAdd') { score += (+r.amt || 0); updateHUD(); }
+  else if (r.act === 'scoreSet') { score = (+r.amt || 0); updateHUD(); }
+  else if (r.act === 'varAdd') { const k = r.van || 'var'; gameVars[k] = (gameVars[k] || 0) + (+r.amt || 0); updateHUD(); }
+  else if (r.act === 'varSet') { const k = r.van || 'var'; gameVars[k] = (+r.amt || 0); updateHUD(); }
+  else if (r.act === 'win') showGameEnd(r.msg || '🏆 YOU WIN', 'var(--acc)');
+  else if (r.act === 'lose') showGameEnd(r.msg || '💀 GAME OVER', '#ff5470');
+  else if (r.act === 'message') toast(r.msg || '…');
+  else if (r.act === 'show') { const t = entities.find(e => e.id === r.atarget); if (t) t.obj.visible = true; }
+  else if (r.act === 'hide') { const t = entities.find(e => e.id === r.atarget); if (t) t.obj.visible = false; }
+  else if (r.act === 'restart') restartGame(r, false);
+  else if (r.act === 'fx') { const t = r.atarget ? entities.find(e => e.id === r.atarget) : (entities.find(e => e.isPlayer) || null); const p = t ? t.obj.position : new THREE.Vector3(0, 1, 0); spawnFX(r.fxType || 'spark', p); }
+  invalidate();
+}
+function restartGame(exceptRule, full) {
+  entities.forEach(e => { if (e._base) applyLerp(e.obj, e._base, e._base, 1); e.obj.visible = true; if (e.trigger) { e.trigger._fired = false; e.trigger._inside = false; } if (e.npc) e.npc._tgt = null; });
+  score = 0; gameVars = {};
+  gameRules.forEach(x => { if (full || (x !== exceptRule && x.when !== 'start')) x._fired = false; x._down = false; x._hit = false; x._acc = 0; });
+  updateHUD();
+  const bn = $('#banner'); if (bn) bn.style.display = 'none';
+  const go = $('#gameOver'); if (go) go.classList.remove('on');
+  invalidate();
+}
+function showGameEnd(text, color) { const o = $('#gameOver'); if (!o) { showBanner(text, color); return; } const t = $('#goText'); if (t) { t.textContent = text; t.style.color = color || 'var(--acc)'; } o.classList.add('on'); spawnFX('confetti', { x: 0, y: 5, z: 0 }); invalidate(); }
+
+// ── FX particles (game juice — spark/smoke/confetti/magic/poof) ──
+const _fxSystems = [];
+function spawnFX(type, pos) {
+  const N = type === 'confetti' ? 90 : type === 'smoke' ? 24 : 44;
+  const arr = new Float32Array(N * 3), col = new Float32Array(N * 3), vel = [];
+  const PAL = [[1, 0.3, 0.35], [0.3, 0.6, 1], [1, 0.85, 0.3], [0.4, 0.9, 0.5], [0.8, 0.4, 1]];
+  for (let i = 0; i < N; i++) {
+    arr[i * 3] = pos.x; arr[i * 3 + 1] = pos.y; arr[i * 3 + 2] = pos.z; let c, v;
+    if (type === 'spark') { c = [1, 0.7, 0.2]; v = { x: (Math.random() - 0.5) * 4, y: Math.random() * 4 + 1, z: (Math.random() - 0.5) * 4 }; }
+    else if (type === 'smoke') { c = [0.62, 0.62, 0.64]; v = { x: (Math.random() - 0.5) * 0.6, y: Math.random() * 1 + 0.5, z: (Math.random() - 0.5) * 0.6 }; }
+    else if (type === 'confetti') { c = PAL[i % PAL.length]; v = { x: (Math.random() - 0.5) * 3.5, y: Math.random() * 3 + 2, z: (Math.random() - 0.5) * 3.5 }; }
+    else if (type === 'magic') { c = [0.3, 0.9, 1]; v = { x: (Math.random() - 0.5) * 1.5, y: Math.random() * 2 + 1, z: (Math.random() - 0.5) * 1.5 }; }
+    else { c = [1, 1, 1]; v = { x: (Math.random() - 0.5) * 2.6, y: Math.random() * 2.6, z: (Math.random() - 0.5) * 2.6 }; }
+    col[i * 3] = c[0]; col[i * 3 + 1] = c[1]; col[i * 3 + 2] = c[2]; vel.push(v);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: type === 'smoke' ? 0.4 : 0.18, vertexColors: true, transparent: true, opacity: 1, depthWrite: false }));
+  pts.userData._fx = true; scene.add(pts);
+  _fxSystems.push({ pts, vel, life: 0, max: type === 'smoke' ? 2.2 : 1.5, grav: type === 'smoke' ? -0.2 : (type === 'magic' ? -0.6 : -6) });
+  invalidate();
+}
+function stepFX(dt) {
+  if (!_fxSystems.length) return false;
+  for (let s = _fxSystems.length - 1; s >= 0; s--) {
+    const f = _fxSystems[s]; f.life += dt; const pos = f.pts.geometry.attributes.position.array;
+    for (let i = 0; i < f.vel.length; i++) { f.vel[i].y += f.grav * dt; pos[i * 3] += f.vel[i].x * dt; pos[i * 3 + 1] += f.vel[i].y * dt; pos[i * 3 + 2] += f.vel[i].z * dt; }
+    f.pts.geometry.attributes.position.needsUpdate = true; f.pts.material.opacity = Math.max(0, 1 - f.life / f.max);
+    if (f.life >= f.max) { scene.remove(f.pts); f.pts.geometry.dispose(); f.pts.material.dispose(); _fxSystems.splice(s, 1); }
+  }
+  return true;
+}
+function stepGameRules(dt) {
+  let acted = false; const p = entities.find(e => e.isPlayer);
+  for (const r of gameRules) {
+    if (r.enabled === false) continue;
+    let fire = false;
+    if (r.when === 'start') { if (!r._fired) fire = true; }
+    else if (r.when === 'key') { let k = (r.key || '').toLowerCase().trim(); if (k === 'space') k = ' '; if (k) { if (_keys[k] && !r._down) { fire = true; r._down = true; } else if (!_keys[k]) r._down = false; } }
+    else if (r.when === 'collide') { const t = r.ctarget ? entities.find(e => e.id === r.ctarget) : null; if (p && t) { const hit = _hitTest(p.obj, t.obj); if (hit && !r._hit) { fire = true; r._hit = true; } else if (!hit) r._hit = false; } }
+    else if (r.when === 'score') { if (score >= (+r.sval || 0) && !r._fired) fire = true; }
+    else if (r.when === 'varGte') { if ((gameVars[r.vn] || 0) >= (+r.sval || 0) && !r._fired) fire = true; }
+    else if (r.when === 'timer') { r._acc = (r._acc || 0) + (dt || 0); const iv = Math.max(0.1, +r.sval || 1); if (r._acc >= iv) { r._acc -= iv; fire = true; } }
+    if (fire) { if (r.when === 'start' || r.when === 'score' || r.when === 'varGte') r._fired = true; doRuleAction(r); acted = true; }
+  }
+  return acted;
+}
+const WHENS = [['start', '▶ On Start'], ['key', '⌨ On Key'], ['collide', '💥 Player hits'], ['score', '⭐ Score ≥'], ['varGte', '📊 Var ≥'], ['timer', '⏱ Every (sec)']];
+const ACTS = [['scoreAdd', '⭐ Score +'], ['scoreSet', '⭐ Score ='], ['varAdd', '📊 Var +'], ['varSet', '📊 Var ='], ['win', '🏆 Win'], ['lose', '💀 Lose'], ['message', '💬 Message'], ['show', '👁 Show'], ['hide', '🚫 Hide'], ['restart', '🔄 Restart'], ['fx', '✨ FX']];
+const FXTYPES = ['spark', 'confetti', 'smoke', 'magic', 'poof'];
+function renderRules() {
+  const box = $('#rulesList'); if (!box) return;
+  const opt = (arr, v) => arr.map(([k, l]) => `<option value="${k}" ${v === k ? 'selected' : ''}>${l}</option>`).join('');
+  const eopt = (v) => '<option value="">— target —</option>' + entities.map(e => `<option value="${e.id}" ${v === e.id ? 'selected' : ''}>${e.name}</option>`).join('');
+  box.innerHTML = gameRules.length ? gameRules.map((r, i) => {
+    const wArg = r.when === 'key' ? `<input class="rKey" placeholder="key (space/e/f)" value="${(r.key || '').replace(/"/g, '&quot;')}" style="width:96px">`
+      : r.when === 'collide' ? `<select class="rCT">${eopt(r.ctarget)}</select>`
+      : r.when === 'score' ? `<input type="number" class="rSV" value="${r.sval != null ? r.sval : 3}" style="width:56px">`
+      : r.when === 'varGte' ? `<input class="rVN" placeholder="var (mis. health)" value="${(r.vn || '').replace(/"/g, '&quot;')}" style="width:84px"><input type="number" class="rSV" value="${r.sval != null ? r.sval : 1}" style="width:52px">`
+      : r.when === 'timer' ? `<input type="number" class="rSV" min="0.1" step="0.1" value="${r.sval != null ? r.sval : 2}" style="width:56px"><span style="color:var(--mut);font-size:10px">dtk</span>` : '';
+    const aArg = (r.act === 'scoreAdd' || r.act === 'scoreSet') ? `<input type="number" class="rAmt" value="${r.amt != null ? r.amt : 1}" style="width:56px">`
+      : (r.act === 'varAdd' || r.act === 'varSet') ? `<input class="rVAN" placeholder="var (mis. health)" value="${(r.van || '').replace(/"/g, '&quot;')}" style="width:84px"><input type="number" class="rAmt" value="${r.amt != null ? r.amt : 1}" style="width:52px">`
+      : (r.act === 'message' || r.act === 'win' || r.act === 'lose') ? `<input class="rMsg" placeholder="teks (opsional)" value="${(r.msg || '').replace(/"/g, '&quot;')}" style="width:130px">`
+      : (r.act === 'show' || r.act === 'hide') ? `<select class="rAT">${eopt(r.atarget)}</select>`
+      : r.act === 'fx' ? `<select class="rFX">${FXTYPES.map(x => `<option ${r.fxType === x ? 'selected' : ''}>${x}</option>`).join('')}</select><select class="rAT" title="di posisi (kosong = player)">${eopt(r.atarget)}</select>` : '';
+    return `<div class="ruleRow" data-i="${i}" style="${r.enabled === false ? 'opacity:.5' : ''}"><input type="checkbox" class="rEn" ${r.enabled === false ? '' : 'checked'} title="aktif/nonaktif"><b style="color:var(--mut);font-size:10px">WHEN</b><select class="rWhen">${opt(WHENS, r.when)}</select>${wArg}<b style="color:var(--acc);font-size:10px">→ DO</b><select class="rAct">${opt(ACTS, r.act)}</select>${aArg}<span style="flex:1"></span><button class="btn rUp" title="naik" style="padding:2px 6px">↑</button><button class="btn rDup" title="duplikat" style="padding:2px 6px">⧉</button><button class="btn rDel" title="hapus" style="padding:2px 6px">✕</button></div>`;
+  }).join('') : '<div class="muted" style="font-size:11px">belum ada rule — klik + Add rule</div>';
+  box.querySelectorAll('.ruleRow').forEach(row => { const i = +row.dataset.i, r = gameRules[i];
+    row.querySelector('.rWhen').onchange = e => { r.when = e.target.value; renderRules(); scheduleAutosave(); };
+    row.querySelector('.rAct').onchange = e => { r.act = e.target.value; renderRules(); scheduleAutosave(); };
+    const q = (c, ev, fn) => { const el = row.querySelector(c); if (el) el[ev] = fn; };
+    q('.rKey', 'oninput', e => { r.key = e.target.value; scheduleAutosave(); });
+    q('.rCT', 'onchange', e => { r.ctarget = e.target.value; scheduleAutosave(); });
+    q('.rSV', 'oninput', e => { r.sval = +e.target.value; scheduleAutosave(); });
+    q('.rVN', 'oninput', e => { r.vn = e.target.value; scheduleAutosave(); });
+    q('.rVAN', 'oninput', e => { r.van = e.target.value; scheduleAutosave(); });
+    q('.rAmt', 'oninput', e => { r.amt = +e.target.value; scheduleAutosave(); });
+    q('.rMsg', 'oninput', e => { r.msg = e.target.value; scheduleAutosave(); });
+    q('.rAT', 'onchange', e => { r.atarget = e.target.value; scheduleAutosave(); });
+    q('.rFX', 'onchange', e => { r.fxType = e.target.value; scheduleAutosave(); });
+    q('.rEn', 'onchange', e => { r.enabled = e.target.checked; renderRules(); scheduleAutosave(); });
+    row.querySelector('.rUp').onclick = () => { if (i > 0) { const t = gameRules[i - 1]; gameRules[i - 1] = gameRules[i]; gameRules[i] = t; renderRules(); scheduleAutosave(); } };
+    row.querySelector('.rDup').onclick = () => { gameRules.splice(i + 1, 0, { ...gameRules[i] }); renderRules(); scheduleAutosave(); };
+    row.querySelector('.rDel').onclick = () => { gameRules.splice(i, 1); renderRules(); scheduleAutosave(); };
+  });
+  updateGameBtns();
+}
+function openLogicCards() { renderRules(); $('#logicModal').classList.add('on'); }
+$('#rulesBtn').onclick = openLogicCards;
+$('#logicCardsClose').onclick = () => $('#logicModal').classList.remove('on');
+$('#logicModal').onclick = e => { if (e.target.id === 'logicModal') $('#logicModal').classList.remove('on'); };
+$('#ruleAdd').onclick = () => { gameRules.push({ when: 'key', key: 'space', act: 'scoreAdd', amt: 1, msg: '', ctarget: '', atarget: '', sval: 3, vn: '', van: '', fxType: 'spark', enabled: true }); renderRules(); scheduleAutosave(); };
+
+async function setPlay(on) { playMode = on; document.body.classList.toggle('play', on); const b = $('#playToggle'); if (b) { b.innerHTML = on ? '⏹ Stop' : '▶ Play'; b.classList.toggle('on', on); }
+  tc.detach(); tweens.clear(); _toggled.clear(); _hovered = null;
+  const _bn = $('#banner'); if (_bn) _bn.style.display = 'none';
+  const _go = $('#gameOver'); if (_go) _go.classList.remove('on');
+  for (const k in _keys) _keys[k] = false;   // no stuck movement keys across play/stop
+  if (on) { entities.forEach(e => { e._base = snapshotState(e.obj); (e.behaviours || []).forEach(b => b._t = 0); if (e.trigger) { e.trigger._fired = false; e.trigger._inside = false; } if (e.npc) e.npc._tgt = null; }); score = 0; gameVars = {}; gameRules.forEach(r => { r._fired = false; r._down = false; r._hit = false; r._acc = 0; }); updateHUD(); showHUD(true); selected = null; renderTree(); syncInspector();
+    const needsPlayer = gameRules.some(r => r.when === 'collide') || entities.some(e => e.trigger);
+    if (needsPlayer && !entities.some(e => e.isPlayer)) showBanner('⚠ Belum ada Player — pilih objek lalu klik 🎮 Player', '#ffb454');
+    else toast('▶ Play — WASD player · trigger · rules · physics'); await initPhysics(); }
+  else { teardownPhysics(); entities.forEach(e => { if (e._base) applyLerp(e.obj, e._base, e._base, 1); e.obj.visible = true; }); showHUD(false); toast('⏹ Edit mode'); }
+  canvas.style.cursor = 'default'; invalidate(); }
+canvas.addEventListener('pointermove', e => { if (!playMode) return; const en = pickEntity(e.clientX, e.clientY);
+  if (en && !en._base) en._base = snapshotState(en.obj);
+  if (en !== _hovered) {
+    if (_hovered && _hovered.fx && _hovered.fx.trigger === 'hover' && _hovered._base) startTween(_hovered, _hovered._base);
+    if (en && en.fx && en.fx.trigger === 'hover' && en.fx.active) startTween(en, en.fx.active);
+    _hovered = en; canvas.style.cursor = (en && en.fx && en.fx.trigger !== 'none' && en.fx.active) ? 'pointer' : 'default'; } });
+canvas.addEventListener('pointerdown', e => { if (!playMode) return; const en = pickEntity(e.clientX, e.clientY);
+  if (en && !en._base) en._base = snapshotState(en.obj);
+  if (en && en.fx && en.fx.trigger === 'click' && en.fx.active) { if (_toggled.has(en)) { _toggled.delete(en); startTween(en, en._base); } else { _toggled.add(en); startTween(en, en.fx.active); } } });
+
+// ── toolbar wiring ──
+$('#addBtn').onclick = () => $('#addMenu').classList.toggle('open');
+document.querySelectorAll('#addMenu .pop button').forEach(b => b.onclick = () => { prim(b.dataset.prim); $('#addMenu').classList.remove('open'); });
+document.addEventListener('click', e => { if (!e.target.closest('#addMenu')) $('#addMenu').classList.remove('open'); });
+// ── style for AI generation (prompt → 3D + 2D → 3D) ──
+const STYLE_TAGS = {
+  realistic: 'realistic, photorealistic, detailed PBR materials, high detail',
+  chibi: 'cute chibi style, big head, kawaii, soft rounded, stylized',
+  lowpoly: 'low poly, flat shading, faceted, minimal polygons, stylized game art',
+  pixar: 'Pixar 3D animation style, smooth appealing shapes, soft lighting',
+  clay: 'claymation clay style, handmade, soft matte, rounded',
+  voxel: 'voxel art, blocky cubes, Minecraft-like',
+  toy: 'cute glossy plastic toy, miniature, vibrant',
+  scifi: 'sci-fi futuristic, sleek metallic, neon accents',
+};
+function styleVal() { const s = $('#styleSel'); return s ? s.value : 'realistic'; }
+function styleTag() { return STYLE_TAGS[styleVal()] || ''; }
+function _styled(p) { const t = styleTag(); return t ? (p + ', ' + t) : p; }
+$('#genObj').onclick = genObject; $('#genGlb').onclick = genGlb;
+$('#playToggle').onclick = () => setPlay(!playMode);
+$('#logicBtn').onclick = () => { const ov = $('#logicOverlay'); ov.classList.contains('on') ? ov.classList.remove('on') : openLogic(); };
+$('#logicClose').onclick = () => $('#logicOverlay').classList.remove('on');
+$('#logicFromRules').onclick = rulesToGraph;
+$('#logicRun').onclick = () => { logicRun = !logicRun; $('#logicRun').classList.toggle('on', logicRun); $('#logicRun').textContent = logicRun ? '⏸ Stop' : '▶ Run'; if (logicRun) invalidate(); };
+$('#prompt').addEventListener('keydown', e => { if (e.key === 'Enter') genObject(); });
+$('#importBtn').onclick = () => $('#file').click();
+$('#img3d').onclick = () => $('#img3dFile').click();
+$('#img3dFile').onchange = e => { const f = e.target.files[0]; if (f) imageTo3D(f); e.target.value = ''; };
+$('#file').onchange = e => { const f = e.target.files[0]; if (!f) return; const u = URL.createObjectURL(f); gltf.load(u, g => { addEntity(g.scene || (g.scenes && g.scenes[0]), f.name.replace(/\.(glb|gltf)$/i, '')); toast('✅ import ' + f.name); URL.revokeObjectURL(u); }, undefined, () => { toast('gagal import ' + f.name); URL.revokeObjectURL(u); }); };
+function setGizmo(mode, btn) { tc.setMode(mode); ['gMove','gRot','gScale'].forEach(i => $('#' + i).classList.remove('on')); btn.classList.add('on'); }
+$('#gMove').onclick = e => setGizmo('translate', e.target); $('#gRot').onclick = e => setGizmo('rotate', e.target); $('#gScale').onclick = e => setGizmo('scale', e.target);
+$('#del').onclick = removeSelected;
+$('#ungroup').onclick = ungroupSelected;
+$('#playerBtn').onclick = makePlayer;
+$('#triggerBtn').onclick = makeTrigger;
+$('#npcBtn').onclick = makeNPC;
+$('#buildBtn').onclick = () => setBuildMode();
+$('#goAgain').onclick = () => restartGame(null, true);
+$('#goStop').onclick = () => setPlay(false);
+function updateGameBtns() { const pb = $('#playerBtn'); if (pb) pb.classList.toggle('on', !!(selected && selected.isPlayer)); const tb = $('#triggerBtn'); if (tb) tb.classList.toggle('on', !!(selected && selected.trigger)); const nb = $('#npcBtn'); if (nb) nb.classList.toggle('on', !!(selected && selected.npc)); const rb = $('#rulesBtn'); if (rb) rb.classList.toggle('on', gameRules.length > 0); }
+$('#dup').onclick = () => { if (!selected) return; const c = selected.obj.clone(true); c.traverse(o => { if (o.isMesh && o.material) o.material = Array.isArray(o.material) ? o.material.map(m => m.clone()) : o.material.clone(); }); c.position.x += 1; addEntity(c, selected.name + ' copy'); };
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (playMode) return;   // in Play, keys drive the game (WASD/rules), not edit shortcuts
+  const ctrl = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  if (buildMode && k === 'escape') { e.preventDefault(); setBuildMode(false); return; }
+  if (ctrl && k === 'z') { e.preventDefault(); e.shiftKey ? doRedo() : doUndo(); return; }
+  if (ctrl && k === 'y') { e.preventDefault(); doRedo(); return; }
+  if (ctrl && k === 'd') { e.preventDefault(); $('#dup').click(); return; }
+  if (k === 'f' && selected) { e.preventDefault(); controls.fitToBox(selected.obj, true); return; }
+  if (!ctrl && k === 'k' && selected) { e.preventDefault(); if(!tlOpen) tlToggle(true); tlSetKey(); return; }
+  if (k === 'w') $('#gMove').click(); else if (k === 'e') $('#gRot').click(); else if (k === 'r') $('#gScale').click();
+  else if (e.key === 'Delete') removeSelected(); else if (e.key === 'Escape') select(null);
+});
+// snap toggle + prompt→texture + undo/redo buttons
+let snapOn = false;
+$('#snap').onclick = () => { snapOn = !snapOn; $('#snap').classList.toggle('on', snapOn); tc.setTranslationSnap(snapOn ? 0.25 : null); tc.setRotationSnap(snapOn ? THREE.MathUtils.degToRad(15) : null); tc.setScaleSnap(snapOn ? 0.1 : null); toast(snapOn ? '⌖ snap on (0.25 / 15°)' : 'snap off'); };
+$('#undo').onclick = doUndo; $('#redo').onclick = doRedo;
+$('#fx').onclick = () => { fxOn = !fxOn; $('#fx').classList.toggle('on', fxOn); toast(fxOn ? '✨ post-fx ON (GTAO AO + SMAA)' : 'post-fx off'); };
+// ── Ctrl+K command palette ──
+function _mp(name) { if (!selected) return toast('pilih objek dulu'); applyMatPreset(selected.obj, name); syncInspector(); invalidate(); }
+// ── object tools (align / mirror / array) ──
+function _cloneObj(o) { const c = o.clone(true); c.traverse(x => { if (x.isMesh && x.material) x.material = Array.isArray(x.material) ? x.material.map(m => m.clone()) : x.material.clone(); }); return c; }
+function dropGround() { if (!selected) return toast('pilih objek dulu'); const b = new THREE.Box3().setFromObject(selected.obj); selected.obj.position.y -= b.min.y; syncInspector(); invalidate(); toast('⬇ drop to ground'); }
+function centerXZ() { if (!selected) return toast('pilih objek dulu'); selected.obj.position.x = 0; selected.obj.position.z = 0; syncInspector(); invalidate(); toast('⊕ center'); }
+function mirrorAxis(ax) { if (!selected) return toast('pilih objek dulu'); const c = _cloneObj(selected.obj); c.position[ax] *= -1; c.scale[ax] *= -1; addEntity(c, selected.name + ' mirror'); toast('🪞 mirror ' + ax.toUpperCase()); }
+function arrayDup(n, ax) { if (!selected) return toast('pilih objek dulu'); const base = selected.obj, nm = selected.name; const sz = new THREE.Box3().setFromObject(base).getSize(new THREE.Vector3()); const step = (sz[ax] || 1) + 0.3; for (let i = 1; i <= n; i++) { const c = _cloneObj(base); c.position[ax] += step * i; addEntity(c, nm + ' ' + i); } toast('▦ array ×' + n); }
+// ── Ungroup / Explode: make AI-generated / imported multi-mesh objects editable part-by-part (Spline/Meshy → manual edit) ──
+function ungroupSelected() {
+  if (!selected) return toast('pilih objek dulu');
+  const orig = selected, root = orig.obj; root.updateWorldMatrix(true, true);
+  const meshes = []; root.traverse(o => { if (o.isMesh && o.geometry) meshes.push(o); });
+  if (meshes.length < 2) return toast('objek ini 1 mesh — tak bisa di-ungroup (edit material/transform-nya langsung)');
+  _loading = true;
+  const parts = [];
+  meshes.forEach((m, i) => {
+    m.updateWorldMatrix(true, false);
+    const geo = m.geometry.clone();
+    const mat = Array.isArray(m.material) ? m.material.map(x => x.clone()) : (m.material ? m.material.clone() : new THREE.MeshStandardMaterial());
+    const nm = new THREE.Mesh(geo, mat);
+    m.matrixWorld.decompose(nm.position, nm.quaternion, nm.scale);
+    nm.name = m.name || (orig.name + ' · part ' + (i + 1));
+    parts.push(addEntity(nm, nm.name));
+  });
+  _detach(orig); _loading = false;
+  pushCmd({ undo: () => { parts.forEach(p => _detach(p)); _attach(orig); select(orig); }, redo: () => { _detach(orig); parts.forEach(p => _attach(p)); select(parts[parts.length - 1]); } });
+  select(parts[parts.length - 1]);
+  toast('🧩 ungroup → ' + parts.length + ' part' + ((orig.isPlayer || orig.trigger) ? ' (⚠ role Player/Trigger lepas — set ulang)' : ' bisa diedit satu-satu (klik tiap part)'));
+}
+// ── environment / lighting mood presets ──
+function setEnv(name) {
+  const E = {
+    studio: { c: '#ffffff', i: 1.6, p: [6, 10, 6], bg: '#0b0d14', x: 1.0 },
+    sunset: { c: '#ff9b54', i: 2.0, p: [8, 4, 4], bg: '#241726', x: 1.1 },
+    night: { c: '#5a78ff', i: 0.55, p: [4, 8, -6], bg: '#05060d', x: 0.9 },
+    bright: { c: '#ffffff', i: 2.3, p: [5, 12, 5], bg: '#1a2230', x: 1.35 },
+    dawn: { c: '#ffd9a0', i: 1.3, p: [-6, 5, 6], bg: '#101826', x: 1.05 },
+  }[name]; if (!E) return;
+  sun.color.set(E.c); sun.intensity = E.i; sun.position.set(E.p[0], E.p[1], E.p[2]);
+  scene.background = new THREE.Color(E.bg); renderer.toneMappingExposure = E.x;
+  invalidate(); toast('🌅 environment: ' + name);
+}
+// ── HDRI environment (real image-based lighting) + lights ──
+let _baseEnv, _curHdri = null;
+const HDRIS = { esplanade: 'royal_esplanade_1k', sunset: 'venice_sunset_1k', quarry: 'quarry_01_1k', overpass: 'pedestrian_overpass_1k', sunrise: 'spruit_sunrise_1k' };
+function loadHDRI(key, withBg) {
+  if (_baseEnv === undefined) _baseEnv = scene.environment;
+  _curHdri = key || null;
+  if (!key) { scene.environment = _baseEnv; scene.background = new THREE.Color(0x0b0d14); invalidate(); toast('HDRI off'); return; }
+  toast('<span class="spin"></span> load HDRI ' + key + '…');
+  new RGBELoader().load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r180/examples/textures/equirectangular/' + HDRIS[key] + '.hdr', tex => {
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    const pg = new THREE.PMREMGenerator(renderer); const env = pg.fromEquirectangular(tex).texture; pg.dispose(); tex.dispose();
+    if (scene.environment && scene.environment !== _baseEnv && scene.environment.dispose) scene.environment.dispose();
+    scene.environment = env; if (withBg !== false) scene.background = env;
+    invalidate(); toast('🌅 HDRI: ' + key);
+  }, undefined, () => toast('gagal load HDRI'));
+}
+function addLight() {
+  const g = new THREE.Group(); g.add(new THREE.PointLight(0xffffff, 60, 0, 2));
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 12), new THREE.MeshBasicMaterial({ color: 0xfff2b0 })));
+  g.position.set(2, 3, 2); addEntity(g, 'Light'); toast('💡 light ditambah — geser pakai gizmo');
+}
+const CMDS = [
+  { l: 'Add Box', r: () => prim('box') }, { l: 'Add Sphere', r: () => prim('sphere') }, { l: 'Add Cylinder', r: () => prim('cylinder') }, { l: 'Add Cone', r: () => prim('cone') }, { l: 'Add Torus', r: () => prim('torus') }, { l: 'Add Plane', r: () => prim('plane') },
+  { l: 'Gen Object (prompt → 3D)', r: () => $('#genObj').click() }, { l: 'Gen Building (Blender)', r: () => $('#genGlb').click() }, { l: 'Gen Texture (AI)', r: () => $('#genTex').click() }, { l: 'Image → 3D', r: () => $('#img3d').click() },
+  { l: 'Import GLB', r: () => $('#importBtn').click() }, { l: 'Asset Library (CC0)', r: openAssets }, { l: 'Export GLB', r: () => $('#exportGlb').click() }, { l: 'Share / Embed + AR', r: shareScene }, { l: 'Save scene', r: () => saveScene(false) }, { l: 'Load scene', r: () => $('#loadScene').click() },
+  { l: 'Undo', r: doUndo, k: 'Ctrl+Z' }, { l: 'Redo', r: doRedo, k: 'Ctrl+Y' }, { l: 'Duplicate', r: () => $('#dup').click(), k: 'Ctrl+D' }, { l: 'Delete selected', r: removeSelected, k: 'Del' },
+  { l: 'Focus selected', r: () => { if (selected) controls.fitToBox(selected.obj, true); }, k: 'F' }, { l: 'Toggle post-FX', r: () => $('#fx').click() }, { l: 'Toggle Snap', r: () => $('#snap').click() },
+  { l: 'Play / Stop', r: () => setPlay(!playMode) }, { l: 'Logic node editor', r: openLogic }, { l: '🔗 Rules → Node Graph (Blueprint view)', r: rulesToGraph },
+  { l: 'Material: Glass', r: () => _mp('glass') }, { l: 'Material: Metal', r: () => _mp('metal') }, { l: 'Material: Gold', r: () => _mp('gold') }, { l: 'Material: Neon', r: () => _mp('neon') }, { l: 'Material: Chrome', r: () => _mp('chrome') }, { l: 'Material: Car Paint', r: () => _mp('carpaint') }, { l: 'Material: Plastic', r: () => _mp('plastic') }, { l: 'Material: Concrete', r: () => _mp('concrete') },
+  { l: 'Drop to ground', r: dropGround }, { l: 'Center (X/Z)', r: centerXZ },
+  { l: 'Mirror X', r: () => mirrorAxis('x') }, { l: 'Mirror Y', r: () => mirrorAxis('y') }, { l: 'Mirror Z', r: () => mirrorAxis('z') },
+  { l: 'Array ×3 (X)', r: () => arrayDup(3, 'x') }, { l: 'Array ×5 (X)', r: () => arrayDup(5, 'x') }, { l: 'Array ×3 (Z)', r: () => arrayDup(3, 'z') },
+  { l: '🧩 Ungroup / Explode (edit generated parts)', r: ungroupSelected },
+  { l: '🎮 Make / Clear Player (game)', r: makePlayer }, { l: '🎯 Make / Clear Trigger zone', r: makeTrigger }, { l: '🧍 Make / Clear NPC (wandering)', r: makeNPC }, { l: '🎲 Game Logic Rules (no-code WHEN→DO)', r: openLogicCards }, { l: '🧱 World / Tile Builder (toggle)', r: () => setBuildMode() }, { l: '✨ Spawn FX: Spark', r: () => spawnFX('spark', { x: 0, y: 1, z: 0 }) }, { l: '🎉 Spawn FX: Confetti', r: () => spawnFX('confetti', { x: 0, y: 5, z: 0 }) },
+  { l: 'Style: Realistic', r: () => { $('#styleSel').value = 'realistic'; toast('🎬 style: realistic'); } }, { l: 'Style: Chibi', r: () => { $('#styleSel').value = 'chibi'; toast('🧸 style: chibi'); } }, { l: 'Style: Low-poly', r: () => { $('#styleSel').value = 'lowpoly'; toast('🔷 style: low-poly'); } }, { l: 'Style: Pixar', r: () => { $('#styleSel').value = 'pixar'; toast('✨ style: pixar'); } }, { l: 'Style: Voxel', r: () => { $('#styleSel').value = 'voxel'; toast('🧱 style: voxel'); } }, { l: 'Style: Sci-fi', r: () => { $('#styleSel').value = 'scifi'; toast('🛸 style: sci-fi'); } },
+  { l: 'Environment: Studio', r: () => setEnv('studio') }, { l: 'Environment: Sunset', r: () => setEnv('sunset') }, { l: 'Environment: Night', r: () => setEnv('night') }, { l: 'Environment: Bright', r: () => setEnv('bright') }, { l: 'Environment: Dawn', r: () => setEnv('dawn') },
+  { l: 'HDRI: Esplanade', r: () => loadHDRI('esplanade') }, { l: 'HDRI: Sunset', r: () => loadHDRI('sunset') }, { l: 'HDRI: Quarry', r: () => loadHDRI('quarry') }, { l: 'HDRI: Sunrise', r: () => loadHDRI('sunrise') }, { l: 'HDRI: Off', r: () => loadHDRI(null) }, { l: 'Add Point Light', r: addLight },
+  { l: '🎬 Timeline (toggle)', r: () => tlToggle() }, { l: 'Set Keyframe (selected)', r: () => { if(!tlOpen) tlToggle(true); tlSetKey(); } }, { l: 'Play / Pause Animation', r: () => { if(!tlOpen) tlToggle(true); $('#tlPlay').click(); } },
+  { l: '📷 Set Camera Keyframe (cinematic shot)', r: () => { if(!tlOpen) tlToggle(true); camSetKey(); } }, { l: 'Clear Camera Keyframes', r: () => { camAnim={tracks:[]}; _tlInfo(); scheduleAutosave(); toast('📷 camera track dihapus'); } },
+  { l: 'Mode: Object editor', r: () => setMode('object') }, { l: 'Mode: World builder', r: () => setMode('world') }, { l: 'Mode: Character builder', r: () => setMode('char') },
+];
+let _cmdSel = 0, _cmdF = CMDS;
+function renderCmd() { const list = $('#cmdkList'); list.innerHTML = _cmdF.map((c, i) => `<div class="ci ${i === _cmdSel ? 'sel' : ''}" data-i="${i}"><span>${c.l}</span>${c.k ? `<span class="k">${c.k}</span>` : ''}</div>`).join('') || '<div class="ci">— tidak ada —</div>'; list.querySelectorAll('.ci').forEach(el => el.onclick = () => { const c = _cmdF[+el.dataset.i]; closeCmd(); if (c && c.r) c.r(); }); const s = list.querySelector('.ci.sel'); if (s) s.scrollIntoView({ block: 'nearest' }); }
+function filterCmd(q) { q = (q || '').toLowerCase().trim(); _cmdF = q ? CMDS.filter(c => c.l.toLowerCase().includes(q)) : CMDS; _cmdSel = 0; renderCmd(); }
+function openCmd() { $('#cmdk').classList.add('on'); const inp = $('#cmdkInput'); inp.value = ''; _cmdF = CMDS; _cmdSel = 0; renderCmd(); inp.focus(); }
+function closeCmd() { $('#cmdk').classList.remove('on'); }
+$('#cmdkInput').oninput = e => filterCmd(e.target.value);
+$('#cmdkInput').onkeydown = e => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); _cmdSel = Math.min(_cmdSel + 1, _cmdF.length - 1); renderCmd(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); _cmdSel = Math.max(_cmdSel - 1, 0); renderCmd(); }
+  else if (e.key === 'Enter') { e.preventDefault(); const c = _cmdF[_cmdSel]; closeCmd(); if (c && c.r) c.r(); }
+  else if (e.key === 'Escape') closeCmd();
+};
+$('#cmdk').onclick = e => { if (e.target.id === 'cmdk') closeCmd(); };
+addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#cmdk').classList.contains('on') ? closeCmd() : openCmd(); } });
+if (!composer) { const b = $('#fx'); if (b) { b.disabled = true; b.classList.remove('on'); b.title = 'post-fx tidak didukung GPU ini'; } }
+async function genTexture() {
+  if (!selected) return toast('pilih objek dulu');
+  const p = ($('#prompt').value || '').trim(); if (!p) return toast('ketik prompt dulu');
+  toast('<span class="spin"></span> bikin texture…');
+  try {
+    const r = await fetch(GEN + '/api/gen/image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: _styled(p) + ', seamless tileable texture, top-down, flat', width: 512, height: 512 }) });
+    const d = await r.json(); const url = d && (d.url || d.image);
+    if (!url) return toast('gagal: ' + ((d && d.error) || 'no image'));
+    new THREE.TextureLoader().setCrossOrigin('anonymous').load(url, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      setMatAll(selected.obj, m => { if ('map' in m) { if (m.map && m.map !== tex) m.map.dispose(); m.map = tex; m.needsUpdate = true; } });
+      toast('✅ texture "' + p + '" dipasang'); syncInspector(); invalidate();
+    }, undefined, () => toast('gagal load texture (CORS)'));
+  } catch (e) { toast('gagal — cek koneksi'); }
+}
+$('#genTex').onclick = genTexture;
+// ── glTF save/load (round-trip + localStorage autosave/restore) ──
+const SCENE_KEY = 'mighan_studio_scene';
+function _abToB64(buf){ let s='', a=new Uint8Array(buf); for(let i=0;i<a.length;i+=8192) s+=String.fromCharCode.apply(null,a.subarray(i,i+8192)); return btoa(s); }
+function _b64ToAb(b64){ const s=atob(b64), a=new Uint8Array(s.length); for(let i=0;i<s.length;i++) a[i]=s.charCodeAt(i); return a.buffer; }
+function _exportGLB(cb){ if(!entities.length) return cb(null); const grp=new THREE.Scene(); grp.userData.mighan_scene = { style: styleVal(), hdri: _curHdri||null, fxOn: fxOn, tlDur: tlDur, cam: (camAnim.tracks.length? camAnim : null) }; entities.forEach(e=>{ e.obj.userData.mighan_fx = e.fx; e.obj.userData.mighan = { name: e.name, fx: e.fx||null, phys: e.phys||'none', beh: e.behaviours||[], mat: e.matStack||[], anim: e.anim||null, player: e.isPlayer||false, speed: e.moveSpeed||null, tile: e.tile||null, npc: e.npc ? { speed:e.npc.speed, radius:e.npc.radius } : null, trigger: e.trigger ? { on:e.trigger.on, act:e.trigger.act, msg:e.trigger.msg||'', once:!!e.trigger.once, tIdx: e.trigger.target ? entities.findIndex(x=>x.id===e.trigger.target) : -1 } : null }; const _v=e.obj.visible; e.obj.visible=true; grp.add(e.obj.clone(true)); e.obj.visible=_v; }); new GLTFExporter().parse(grp,(res)=>cb(res),()=>cb(null),{binary:true}); }
+// ── Share / Embed + AR: self-contained <model-viewer> page (free AR iOS Quick Look + Android Scene Viewer when hosted) ──
+function buildViewerHTML(glbDataUrl) {
+  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>Mighan 3D</title><script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"><\/script>'
+    + '<style>html,body{margin:0;height:100%;background:#0e1018;font-family:system-ui}model-viewer{width:100%;height:100%}'
+    + '.bar{position:fixed;left:12px;bottom:12px;color:#8b93a7;font-size:12px}</style></head><body>'
+    + '<model-viewer src="' + glbDataUrl + '" camera-controls auto-rotate shadow-intensity="1" environment-image="neutral" exposure="1" '
+    + 'ar ar-modes="webxr scene-viewer quick-look" tone-mapping="neutral" style="--poster-color:transparent"></model-viewer>'
+    + '<div class="bar">made with 🧊 Mighan 3D Studio — tap “View in AR” on mobile</div></body></html>';
+}
+function shareScene() {
+  if (!entities.length) return toast('scene kosong');
+  toast('<span class="spin"></span> bikin Share/AR viewer…');
+  _exportGLB((res) => {
+    if (!res) return toast('export gagal');
+    const dataUrl = 'data:model/gltf-binary;base64,' + _abToB64(res);
+    const blob = new Blob([buildViewerHTML(dataUrl)], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    const a = document.createElement('a'); a.href = url; a.download = 'mighan-scene-viewer.html'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    toast('📤 Viewer + AR dibuka & ke-download — host file HTML-nya buat share link + AR mobile');
+  });
+}
+function saveScene(silent){ try{ localStorage.setItem(SCENE_KEY+'_fx', JSON.stringify(entities.map(e=>e.fx||null))); localStorage.setItem(SCENE_KEY+'_scene', JSON.stringify({ style: styleVal(), hdri: _curHdri||null, fxOn: fxOn, tlDur: tlDur, cam: (camAnim.tracks.length? camAnim : null), rules: gameRules.length ? gameRules.map(r=>({ when:r.when, key:r.key||'', sval:r.sval||0, act:r.act, amt:r.amt||0, msg:r.msg||'', vn:r.vn||'', van:r.van||'', fxType:r.fxType||'spark', enabled:r.enabled!==false, ctIdx: r.ctarget?entities.findIndex(x=>x.id===r.ctarget):-1, atIdx: r.atarget?entities.findIndex(x=>x.id===r.atarget):-1 })) : null })); }catch(e){} _exportGLB((res)=>{ if(!res){ if(!silent) toast('scene kosong'); return; } try{ localStorage.setItem(SCENE_KEY, _abToB64(res)); if(!silent) toast('💾 scene tersimpan ('+entities.length+' objek)'); }catch(e){ if(!silent) toast('scene besar — pakai Export GLB'); } }); }
+function loadSceneGLB(buf){ _loading=true; gltf.parse(buf,'',(g)=>{ [...entities].forEach(e=>{ disposeObject(e.obj); _detach(e); }); tileGrid.clear(); const root=g.scene||(g.scenes&&g.scenes[0]); const kids=(root?root.children:[]).slice(); kids.forEach(ch=>{ if(root)root.remove(ch); const ent=addEntity(ch, ch.name||'Object'); const md=ch.userData&&ch.userData.mighan; if(md){ if(md.name) ent.name=md.name; if(md.fx) ent.fx=md.fx; if(md.phys) ent.phys=md.phys; if(md.beh) ent.behaviours=md.beh; if(md.anim) ent.anim=md.anim; if(md.player){ ent.isPlayer=true; ent.moveSpeed=md.speed||5; } if(md.tile){ ent.tile=md.tile; tileGrid.set(md.tile.cx+','+md.tile.cz+','+(md.tile.level||0), ent); } if(md.npc) ent.npc=md.npc; if(md.trigger){ ent.trigger={ on:md.trigger.on, act:md.trigger.act, msg:md.trigger.msg||'', once:!!md.trigger.once, target:'', _tIdx:(md.trigger.tIdx==null?-1:md.trigger.tIdx) }; } if(md.mat&&md.mat.length){ ent.matStack=md.mat; composeStack(ent); } } else if(ch.userData&&ch.userData.mighan_fx){ ent.fx=ch.userData.mighan_fx; } }); entities.forEach(en=>{ if(en.trigger){ if(en.trigger._tIdx>=0 && entities[en.trigger._tIdx]) en.trigger.target=entities[en.trigger._tIdx].id; delete en.trigger._tIdx; } }); try{ const fxArr=JSON.parse(localStorage.getItem(SCENE_KEY+'_fx')||'null'); if(fxArr&&fxArr.length===entities.length) entities.forEach((e,i)=>{ if(fxArr[i]&&!(e.obj.userData&&e.obj.userData.mighan)) e.fx=fxArr[i]; }); }catch(e){} try{ const sc=JSON.parse(localStorage.getItem(SCENE_KEY+'_scene')||'null')||(root&&root.userData&&root.userData.mighan_scene); if(sc){ if(sc.style&&$('#styleSel')) $('#styleSel').value=sc.style; if(sc.fxOn!=null&&fxOn!==sc.fxOn&&$('#fx')) $('#fx').click(); if(sc.hdri) loadHDRI(sc.hdri,true); if(sc.tlDur){ tlDur=sc.tlDur; const d=$('#tlDur'); if(d) d.value=tlDur; _tlSyncTime(); } if(sc.cam&&sc.cam.tracks){ camAnim=sc.cam; _tlInfo(); } if(sc.rules){ gameRules=sc.rules.map(r=>({ when:r.when, key:r.key||'', sval:r.sval||0, act:r.act, amt:r.amt||0, msg:r.msg||'', vn:r.vn||'', van:r.van||'', fxType:r.fxType||'spark', enabled:r.enabled!==false, ctarget:'', atarget:'' })); sc.rules.forEach((sr,i)=>{ if(sr.ctIdx>=0&&entities[sr.ctIdx]) gameRules[i].ctarget=entities[sr.ctIdx].id; if(sr.atIdx>=0&&entities[sr.atIdx]) gameRules[i].atarget=entities[sr.atIdx].id; }); } else gameRules=[]; } }catch(e){} _loading=false; select(null); hist.length=0; redo.length=0; toast('📂 scene dimuat ('+kids.length+' objek)'); }, (err)=>{ _loading=false; toast('gagal load scene'); }); }
+let _autosaveT=null; function scheduleAutosave(){ clearTimeout(_autosaveT); _autosaveT=setTimeout(()=>saveScene(true), 1500); }
+$('#saveScene').onclick = ()=>saveScene(false);
+$('#share').onclick = shareScene;
+// ── CC0 asset library ──
+const ASSETS = [
+  { n: '🦆 Duck', u: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/Duck/glTF-Binary/Duck.glb' },
+  { n: '🦊 Fox', u: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/Fox/glTF-Binary/Fox.glb' },
+  { n: '🥑 Avocado', u: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/Avocado/glTF-Binary/Avocado.glb' },
+  { n: '📷 Camera', u: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/AntiqueCamera/glTF-Binary/AntiqueCamera.glb' },
+  { n: '🔊 BoomBox', u: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/BoomBox/glTF-Binary/BoomBox.glb' },
+  { n: '🏮 Lantern', u: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/Lantern/glTF-Binary/Lantern.glb' },
+  { n: '💧 Bottle', u: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/WaterBottle/glTF-Binary/WaterBottle.glb' },
+  { n: '🤖 Robot', u: 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r180/examples/models/gltf/RobotExpressive/RobotExpressive.glb' },
+];
+function loadAsset(a) {
+  $('#assetModal').classList.remove('on'); toast('<span class="spin"></span> load ' + a.n + '…');
+  gltf.load(a.u, g => { const root = g.scene || (g.scenes && g.scenes[0]); const e = addEntity(root, a.n.replace(/^\S+\s/, '') || 'Asset');
+    const s = new THREE.Box3().setFromObject(e.obj).getSize(new THREE.Vector3()); const k = 2 / (Math.max(s.x, s.y, s.z) || 1); e.obj.scale.multiplyScalar(k);
+    e.obj.position.y -= new THREE.Box3().setFromObject(e.obj).min.y; invalidate(); toast('✅ ' + a.n); }, undefined, () => toast('gagal load ' + a.n));
+}
+function renderAssets() { const g = $('#assetGrid'); if (!g || g._done) return; g._done = true; g.innerHTML = ASSETS.map((a, i) => `<div class="ac" data-i="${i}">${a.n}</div>`).join(''); g.querySelectorAll('.ac').forEach(el => el.onclick = () => loadAsset(ASSETS[+el.dataset.i])); }
+function openAssets() { renderAssets(); $('#assetModal').classList.add('on'); }
+$('#assets').onclick = openAssets; $('#assetClose').onclick = () => $('#assetModal').classList.remove('on'); $('#assetModal').onclick = e => { if (e.target.id === 'assetModal') $('#assetModal').classList.remove('on'); };
+$('#loadScene').onclick = ()=>{ const b64=localStorage.getItem(SCENE_KEY); if(!b64) return toast('belum ada scene tersimpan'); loadSceneGLB(_b64ToAb(b64)); };
+
+// ── mode tabs: Object editor / World builder / Character builder ──
+const _tabs = { object:$('#tObj'), world:$('#tWorld'), char:$('#tChar') };
+function setMode(m){
+  if (playMode) setPlay(false);
+  Object.values(_tabs).forEach(t=>t.classList.remove('on')); const f=$('#modeFrame');
+  if(m==='world'){ if(f.dataset.k!=='world'){ f.src='builder.html'; f.dataset.k='world'; } document.body.classList.add('mode-alt'); _tabs.world.classList.add('on'); }
+  else if(m==='char'){ if(f.dataset.k!=='char'){ f.src='avatar-studio.html'; f.dataset.k='char'; } document.body.classList.add('mode-alt'); _tabs.char.classList.add('on'); }
+  else { document.body.classList.remove('mode-alt'); _tabs.object.classList.add('on'); setTimeout(resize,30); }
+}
+$('#tObj').onclick=()=>setMode('object'); $('#tWorld').onclick=()=>setMode('world'); $('#tChar').onclick=()=>setMode('char');
+
+// restore last scene on startup (if any)
+(function(){ const b64=localStorage.getItem(SCENE_KEY); if(b64){ try{ loadSceneGLB(_b64ToAb(b64)); }catch(e){} } })();
+$('#exportGlb').onclick = () => {
+  if (!entities.length) return toast('scene kosong');
+  const ex = new GLTFExporter(); const grp = new THREE.Group(); entities.forEach(e => grp.add(e.obj.clone(true)));
+  ex.parse(grp, (res) => { const blob = new Blob([res], { type: 'model/gltf-binary' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'mighan-scene.glb'; a.click(); toast('⬇ Export GLB selesai'); }, (err) => toast('export gagal'), { binary: true });
+};
+
+// ── loop / resize ──
+function resize() { const b = $('#view').getBoundingClientRect(); renderer.setSize(b.width, b.height, false); camera.aspect = b.width / b.height; camera.updateProjectionMatrix(); if (composer && b.width > 0 && b.height > 0) composer.setSize(b.width, b.height); invalidate(); }
+new ResizeObserver(resize).observe($('#view')); resize();
+// ── behaviours (logic-without-code: continuous animations during Play) ──
+function stepBehaviours(dt) {
+  if (!playMode) return false; let any = false;
+  for (const e of entities) { const bs = e.behaviours; if (!bs || !bs.length || !e._base) continue;
+    for (const b of bs) { b._t = (b._t || 0) + dt; any = true; const t = b._t, sp = b.speed || 1, base = e._base, o = e.obj;
+      if (b.act === 'spin') o.rotation.y = base.rot[1] + t * sp;
+      else if (b.act === 'bob') o.position.y = base.pos[1] + Math.sin(t * sp * 2) * 0.3;
+      else if (b.act === 'float') o.position.y = base.pos[1] + Math.sin(t * sp) * 0.2;
+      else if (b.act === 'pulse') { const s = 1 + Math.sin(t * sp * 3) * 0.12; o.scale.set(base.scale[0] * s, base.scale[1] * s, base.scale[2] * s); }
+      else if (b.act === 'orbit') { o.position.x = base.pos[0] + Math.cos(t * sp) * 1.2; o.position.z = base.pos[2] + Math.sin(t * sp) * 1.2; }
+    }
+  }
+  return any;
+}
+function renderBeh(e) {
+  const box = $('#behList'); if (!box) return; const bs = e.behaviours || [];
+  box.innerHTML = bs.length ? bs.map((b, i) => `<div class="behRow" data-i="${i}" style="display:flex;align-items:center;gap:4px;margin:2px 0;font-size:11px">
+    <span style="width:46px;color:var(--mut)">${b.act}</span>
+    <input type="range" class="bSp" min="0.2" max="6" step="0.1" value="${b.speed || 1}" title="speed" style="flex:1">
+    <button class="btn bDel" style="padding:2px 5px;font-size:10px">✕</button></div>`).join('') : '<div class="muted" style="font-size:11px">belum ada behaviour</div>';
+  box.querySelectorAll('.behRow').forEach(row => { const i = +row.dataset.i;
+    row.querySelector('.bSp').oninput = ev => { bs[i].speed = +ev.target.value; };
+    row.querySelector('.bDel').onclick = () => { bs.splice(i, 1); renderBeh(e); };
+  });
+}
+// ── Animation Timeline (keyframe motion — first step of the Motion/Film direction) ──
+let tlPlaying=false, tlTime=0, tlDur=5, tlLoop=true, tlOpen=false, camAnim={tracks:[]};
+const _ease=f=> f<0.5 ? 2*f*f : 1-Math.pow(-2*f+2,2)/2;   // easeInOutQuad
+function applyAnimState(o,st){ if(!st) return; if(st.pos) o.position.fromArray(st.pos); if(st.rot) o.rotation.set(st.rot[0],st.rot[1],st.rot[2]); if(st.scale) o.scale.fromArray(st.scale); }
+function _lerpArr(a,b,f){ return (a&&b)? a.map((v,i)=>v+(b[i]-v)*f) : (a||b); }
+function sampleAnim(e,time){ const ks=e.anim&&e.anim.tracks; if(!ks||!ks.length) return; const o=e.obj;
+  if(time<=ks[0].t) return applyAnimState(o,ks[0].state);
+  const last=ks[ks.length-1]; if(time>=last.t) return applyAnimState(o,last.state);
+  let i=0; while(i<ks.length-1 && ks[i+1].t<=time) i++;
+  const a=ks[i], b=ks[i+1]||a, span=(b.t-a.t)||1, f=_ease(Math.max(0,Math.min(1,(time-a.t)/span)));
+  applyAnimState(o,{ pos:_lerpArr(a.state.pos,b.state.pos,f), rot:_lerpArr(a.state.rot,b.state.rot,f), scale:_lerpArr(a.state.scale,b.state.scale,f) });
+}
+function stepTimeline(dt){ if(!tlPlaying) return false; tlTime+=dt; if(tlTime>=tlDur){ if(tlLoop) tlTime=tlTime%tlDur||0; else { tlTime=tlDur; tlPlaying=false; const pb=$('#tlPlay'); if(pb) pb.textContent='▶'; } } for(const e of entities){ if(e.anim&&e.anim.tracks&&e.anim.tracks.length) sampleAnim(e,tlTime); } sampleCam(tlTime); _tlSyncTime(); return true; }
+function tlSetKey(){ if(!selected) return toast('pilih objek dulu'); if(!selected.anim) selected.anim={tracks:[]}; const ks=selected.anim.tracks, st=snapshotState(selected.obj), t=+tlTime.toFixed(3); const ex=ks.find(k=>Math.abs(k.t-t)<0.02); if(ex) ex.state=st; else ks.push({t,state:st}); ks.sort((a,b)=>a.t-b.t); scheduleAutosave(); _tlInfo(); toast('🔑 keyframe @ '+t.toFixed(2)+'s · '+ks.length+' key'); invalidate(); }
+function tlClearKeys(){ if(!selected||!selected.anim) return toast('tidak ada keyframe'); selected.anim=null; scheduleAutosave(); _tlInfo(); toast('🗑 keyframe dihapus'); }
+function _tlSyncTime(){ const sc=$('#tlScrub'); if(sc){ if(+sc.max!==tlDur) sc.max=tlDur; sc.value=tlTime; } const tt=$('#tlTime'); if(tt) tt.textContent=tlTime.toFixed(2)+' / '+tlDur.toFixed(1)+'s'; }
+function _tlInfo(){ const el=$('#tlInfo'); if(el){ const n=(selected&&selected.anim&&selected.anim.tracks)?selected.anim.tracks.length:0; el.textContent=n+' key'+(camAnim.tracks.length?(' · '+camAnim.tracks.length+'📷'):''); } }
+function tlToggle(show){ tlOpen=(show!==undefined)?show:!tlOpen; $('#timeline').classList.toggle('show',tlOpen); $('#tlBtn').classList.toggle('on',tlOpen); if(tlOpen){ _tlSyncTime(); _tlInfo(); } }
+$('#tlBtn').onclick=()=>tlToggle();
+$('#tlCloseBtn').onclick=()=>tlToggle(false);
+$('#tlPlay').onclick=()=>{ tlPlaying=!tlPlaying; if(tlPlaying&&tlTime>=tlDur) tlTime=0; $('#tlPlay').textContent=tlPlaying?'⏸':'▶'; if(tlPlaying) invalidate(); };
+$('#tlKey').onclick=tlSetKey;
+$('#tlCamKey').onclick=camSetKey;
+$('#tlClear').onclick=tlClearKeys;
+$('#tlLoop').onchange=e=>{ tlLoop=e.target.checked; };
+$('#tlDur').onchange=e=>{ tlDur=Math.max(1,+e.target.value||5); _tlSyncTime(); scheduleAutosave(); };
+$('#tlScrub').oninput=e=>{ tlTime=+e.target.value; for(const en of entities){ if(en.anim&&en.anim.tracks&&en.anim.tracks.length) sampleAnim(en,tlTime); } sampleCam(tlTime); _tlSyncTime(); invalidate(); };
+// camera keyframe track (cinematic shots — drives camera only during play/scrub so manual orbit stays free)
+function camSetKey(){ controls.update(0); const p=new THREE.Vector3(), t=new THREE.Vector3(); controls.getPosition(p); controls.getTarget(t); const tt=+tlTime.toFixed(3); const ex=camAnim.tracks.find(x=>Math.abs(x.t-tt)<0.02); if(ex){ ex.pos=p.toArray(); ex.target=t.toArray(); } else camAnim.tracks.push({t:tt,pos:p.toArray(),target:t.toArray()}); camAnim.tracks.sort((a,b)=>a.t-b.t); scheduleAutosave(); _tlInfo(); toast('📷 camera keyframe @ '+tt.toFixed(2)+'s · '+camAnim.tracks.length+' cam-key'); }
+function sampleCam(time){ const ks=camAnim.tracks; if(!ks||ks.length<2) return; let pos,target; if(time<=ks[0].t){ pos=ks[0].pos; target=ks[0].target; } else if(time>=ks[ks.length-1].t){ const l=ks[ks.length-1]; pos=l.pos; target=l.target; } else { let i=0; while(i<ks.length-1 && ks[i+1].t<=time) i++; const a=ks[i], b=ks[i+1]||a, f=_ease(Math.max(0,Math.min(1,(time-a.t)/((b.t-a.t)||1)))); pos=_lerpArr(a.pos,b.pos,f); target=_lerpArr(a.target,b.target,f); } controls.setLookAt(pos[0],pos[1],pos[2],target[0],target[1],target[2],false); }
+// ── visual scripting: litegraph node editor (lazy UMD load; nodes act on the selected entity) ──
+let lgraph = null, lcanvas = null, logicRun = false;
+function registerLogicNodes(LiteGraph) {
+  if (LiteGraph._mighan) return; LiteGraph._mighan = true;
+  function Spin() { this.title = 'Spin selected'; this.properties = { speed: 2 }; this.addWidget('number', 'speed', 2, v => { this.properties.speed = v; }, { min: 0, max: 12, step: 0.1 }); }
+  Spin.prototype.onExecute = function () { const s = window.studio; if (s && s.selected) { s.selected.obj.rotation.y += (this.properties.speed || 2) * 0.016; s.invalidate(); } };
+  LiteGraph.registerNodeType('mighan/spin', Spin);
+  function Bob() { this.title = 'Bob selected'; this.properties = { amp: 0.4, speed: 2 }; this.addWidget('number', 'amp', 0.4, v => { this.properties.amp = v; }); this._t = 0; this._b = null; }
+  Bob.prototype.onExecute = function () { const s = window.studio; if (s && s.selected) { this._t += 0.016; if (this._b == null) this._b = s.selected.obj.position.y; s.selected.obj.position.y = this._b + Math.sin(this._t * (this.properties.speed || 2)) * (this.properties.amp || 0.4); s.invalidate(); } };
+  LiteGraph.registerNodeType('mighan/bob', Bob);
+  function SetColor() { this.title = 'Set color (selected)'; this.properties = { hex: '#33d6e0' }; this.addWidget('text', 'hex', '#33d6e0', v => { this.properties.hex = v; this._d = false; }); this.addWidget('button', 'apply', null, () => { this._d = false; }); this._d = false; }
+  SetColor.prototype.onExecute = function () { const s = window.studio; if (s && s.selected && !this._d) { s.selected.obj.traverse(o => { if (o.material && o.material.color) o.material.color.set(this.properties.hex); }); s.invalidate(); this._d = true; } };
+  LiteGraph.registerNodeType('mighan/setcolor', SetColor);
+  function RuleEvent() { this.title = 'WHEN'; this.addOutput('▶', 'exec'); this.color = '#0b3a3d'; this.bgcolor = '#0c2a2c'; this.size = [180, 30]; }
+  LiteGraph.registerNodeType('mighan/rule_event', RuleEvent);
+  function RuleAction() { this.title = 'DO'; this.addInput('▶', 'exec'); this.color = '#2e2350'; this.bgcolor = '#1d1830'; this.size = [180, 30]; }
+  LiteGraph.registerNodeType('mighan/rule_action', RuleAction);
+}
+function _stepLogic() { if (!lgraph) return; const ns = lgraph._nodes || []; for (const n of ns) { if (n.onExecute && n.mode !== 4) { try { n.onExecute(); } catch (e) {} } } }
+function _resizeLogic() { const ov = $('#logicOverlay'), c = $('#logicCanvas'); if (!ov || !c) return; const b = ov.getBoundingClientRect(); c.width = Math.max(b.width | 0, 100); c.height = Math.max((b.height - 42) | 0, 100); if (lcanvas && lcanvas.resize) lcanvas.resize(); }
+async function openLogic() {
+  const ov = $('#logicOverlay'); ov.classList.add('on'); _resizeLogic();
+  if (lgraph) { _resizeLogic(); return; }
+  try {
+    if (!$('#lgcss')) { const l = document.createElement('link'); l.id = 'lgcss'; l.rel = 'stylesheet'; l.href = 'https://cdn.jsdelivr.net/npm/litegraph.js/css/litegraph.css'; document.head.appendChild(l); }
+    if (!window.LiteGraph) { await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/litegraph.js/build/litegraph.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); }); }
+    const LiteGraph = window.LiteGraph, LGraph = window.LGraph, LGraphCanvas = window.LGraphCanvas;
+    if (!LiteGraph || !LGraph || !LGraphCanvas) throw new Error('litegraph globals missing');
+    registerLogicNodes(LiteGraph);
+    lgraph = new LGraph(); _resizeLogic();
+    lcanvas = new LGraphCanvas($('#logicCanvas'), lgraph);
+    const n = LiteGraph.createNode('mighan/spin'); n.pos = [80, 90]; lgraph.add(n);
+    toast('🔌 Logic siap — pilih objek, klik-kanan kanvas buat tambah node, lalu ▶ Run');
+  } catch (e) { ov.classList.remove('on'); toast('litegraph gagal load (CDN?)'); console.warn('litegraph', e); }
+}
+function _ruleWhenLabel(r) { const base = (WHENS.find(w => w[0] === r.when) || ['', r.when])[1]; let a = ''; if (r.when === 'key') a = ' "' + (r.key || '') + '"'; else if (r.when === 'collide') { const t = entities.find(e => e.id === r.ctarget); a = ' ' + (t ? t.name : '?'); } else if (r.when === 'score') a = ' ' + (r.sval || 0); else if (r.when === 'varGte') a = ' ' + (r.vn || 'var') + '≥' + (r.sval || 0); return base + a; }
+function _ruleDoLabel(r) { const base = (ACTS.find(x => x[0] === r.act) || ['', r.act])[1]; let a = ''; if (r.act === 'scoreAdd' || r.act === 'scoreSet') a = ' ' + (r.amt || 0); else if (r.act === 'varAdd' || r.act === 'varSet') a = ' ' + (r.van || 'var') + '=' + (r.amt || 0); else if (r.act === 'message' || r.act === 'win' || r.act === 'lose') a = r.msg ? (' "' + r.msg + '"') : ''; else if (r.act === 'show' || r.act === 'hide') { const t = entities.find(e => e.id === r.atarget); a = ' ' + (t ? t.name : 'self'); } else if (r.act === 'fx') a = ' ' + (r.fxType || 'spark'); return base + a; }
+async function rulesToGraph() {
+  await openLogic();
+  const L = window.LiteGraph; if (!L || !lgraph) return 0;
+  (lgraph._nodes || []).slice().forEach(n => { if (n.type === 'mighan/rule_event' || n.type === 'mighan/rule_action') lgraph.remove(n); });
+  if (!gameRules.length) { toast('belum ada rule — buka 🎲 Rules dulu'); return 0; }
+  gameRules.forEach((r, i) => {
+    const ev = L.createNode('mighan/rule_event'); ev.title = _ruleWhenLabel(r); ev.pos = [70, 70 + i * 95]; lgraph.add(ev);
+    const ac = L.createNode('mighan/rule_action'); ac.title = _ruleDoLabel(r); ac.pos = [340, 70 + i * 95]; lgraph.add(ac);
+    if (r.enabled === false) { ev.mode = 4; ac.mode = 4; }
+    try { ev.connect(0, ac, 0); } catch (e) {}
+  });
+  if (lcanvas) lcanvas.setDirty(true, true);
+  toast('🔗 ' + gameRules.length + ' rule → node graph (Blueprint view)');
+  return gameRules.length;
+}
+let _renderCount = 0; const _clock = new THREE.Clock();
+(function loop() {
+  requestAnimationFrame(loop);
+  const _dt = Math.min(_clock.getDelta(), 1 / 30);            // clamp: avoid tween snap on tab refocus
+  controls.update(_dt);                                       // camera-controls: advances + fires 'update' -> invalidate when moving
+  if (playMode && stepTweens(_dt)) needsRender = true;        // animate active transitions
+  if (playMode && movePlayer(_dt)) needsRender = true;        // player controller (WASD + follow-cam)
+  if (playMode && stepPhysics()) needsRender = true;          // physics simulation
+  if (playMode && stepTriggers()) needsRender = true;         // game triggers (zones)
+  if (playMode && stepGameRules(_dt)) needsRender = true;     // game logic cards (WHEN->DO)
+  if (playMode && stepNPCs(_dt)) needsRender = true;          // NPC wandering (city life)
+  if (playMode && stepBehaviours(_dt)) needsRender = true;    // behaviour animations
+  if (stepFX(_dt)) needsRender = true;                        // particle FX (edit + play)
+  if (tlPlaying && stepTimeline(_dt)) needsRender = true;     // animation timeline playback (Motion)
+  if (logicRun) _stepLogic();                                 // visual scripting graph
+  if (needsRender || _grace > 0) {
+    if (_grace > 0) _grace--;
+    needsRender = false; _renderCount++;
+    const sized = canvas.clientWidth > 0;
+    (composer && fxOn && sized) ? composer.render() : renderer.render(scene, camera);
+  }
+})();
+window.studio = { scene, entities, addEntity, renderer, composer, invalidate, setPlay, snapshotState, initPhysics, stepPhysics, stepBehaviours, openLogic, rulesToGraph, _runLogic: () => _stepLogic(), buildViewerHTML, shareScene, get logic(){ return { loaded: !!window.LiteGraph, nodes: lgraph ? lgraph._nodes.length : 0, running: logicRun }; }, _startTween: startTween, _stepTweens: stepTweens, ungroup: ungroupSelected, makePlayer, movePlayer, _keys, get player(){ return entities.find(e=>e.isPlayer); }, makeTrigger, stepTriggers, fireTrigger, showBanner, openLogicCards, stepGameRules, restartGame, showGameEnd, spawnFX, stepFX, get fxCount(){ return _fxSystems.length; }, get gameRules(){ return gameRules; }, get score(){ return score; }, set score(v){ score=v; }, get gameVars(){ return gameVars; }, setBuildMode, placeTileAt, paintBrush, get buildMode(){ return buildMode; }, set tileType(v){ tileType=v; }, set brushSize(v){ brushSize=v; }, get brushSize(){ return brushSize; }, set buildLevel(v){ buildLevel=v; }, get buildLevel(){ return buildLevel; }, get tileGrid(){ return tileGrid; }, makeNPC, stepNPCs, tlKey: tlSetKey, camKey: camSetKey, sampleCam, get camAnim(){ return camAnim; }, get controls(){ return controls; }, tlToggle, sampleAnim, stepTimeline, get tlTime(){ return tlTime; }, set tlTime(v){ tlTime=v; }, get tlPlaying(){ return tlPlaying; }, set tlPlaying(v){ tlPlaying=v; }, get tlDur(){ return tlDur; }, get selected(){ return selected; }, get playMode(){ return playMode; }, get physReady(){ return physReady; }, get fxOn(){ return fxOn; }, get renders(){ return _renderCount; }, get needsRender(){ return needsRender; }, THREE };
+</script>
+</body>
+</html>

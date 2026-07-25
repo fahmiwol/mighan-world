@@ -1,0 +1,21 @@
+{
+  "grid": { "w": 12, "h": 12, "tile": 1 },
+  "theme": { "bg": "#0c0e14", "floor": "#1c2030" },
+  "objects": [
+    { "type": "desk", "tile": [3, 3] },
+    { "type": "chair", "tile": [3, 4] },
+    { "type": "desk", "tile": [6, 3] },
+    { "type": "chair", "tile": [6, 4] },
+    { "type": "plant", "tile": [1, 1] },
+    { "type": "plant", "tile": [10, 10] },
+    { "type": "board", "tile": [8, 1] },
+    { "type": "shelf", "tile": [1, 9] },
+    { "type": "portal", "tile": [9, 8] }
+  ],
+  "agents": [
+    { "id": "dewi", "name": "Dewi", "tile": [4, 6], "color": 13458314,
+      "avatarUrl": "https://image.pollinations.ai/prompt/cute%203D%20chibi%20designer%2C%20beret%2C%20pastel?width=200&height=200&nologo=true&model=flux&seed=11" },
+    { "id": "sasa", "name": "Sasa", "tile": [7, 6], "color": 3397600,
+      "avatarUrl": "https://image.pollinations.ai/prompt/cute%203D%20chibi%20social%20media%20manager%2C%20pastel?width=200&height=200&nologo=true&model=flux&seed=12" }
+  ]
+}

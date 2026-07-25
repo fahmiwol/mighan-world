@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mighan World Builder</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#0a0c14;color:#e8eaf0;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+  #canvas{position:fixed;inset:0}
+  .panel{position:fixed;background:rgba(16,19,38,.92);border:1px solid #2a3052;backdrop-filter:blur(8px);border-radius:14px;z-index:10}
+  /* top bar */
+  #top{top:54px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;padding:8px 12px;flex-wrap:wrap;max-width:94vw}
+  #top input{background:#0c0e1a;border:1px solid #2a3052;color:#fff;border-radius:8px;padding:7px 11px;font:inherit;width:200px}
+  .btn{background:#33d6e0;color:#04222a;border:0;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:13px}
+  .btn.ghost{background:transparent;color:#e8eaf0;border:1px solid #2a3052}
+  .btn:hover{filter:brightness(1.1)}
+  /* left object dock */
+  #dock{bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:8px;padding:10px 12px}
+  #dock .o{width:46px;height:46px;border-radius:10px;border:1px solid #2a3052;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:grab;font-size:9px;color:#8b93a7}
+  #dock .o:hover{border-color:#33d6e0}
+  #dock .sw{width:18px;height:18px;border-radius:5px}
+  #paint{bottom:16px;left:14px;display:flex;flex-direction:column;gap:7px;padding:11px;width:152px}
+  #paint .ph{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#33d6e0}
+  #paint .prow{display:flex;gap:6px;flex-wrap:wrap}
+  #paint .ps{width:24px;height:24px;border-radius:6px;cursor:pointer;border:2px solid transparent}
+  #paint .ps:hover{border-color:#fff}
+  #paint .ps.on{border-color:#33d6e0;box-shadow:0 0 0 2px #33d6e0}
+  #paint .pb{flex:1;background:#0c0e1a;border:1px solid #2a3052;color:#cfd6e6;border-radius:8px;padding:6px 8px;font:inherit;font-size:11px;cursor:pointer}
+  #paint .pb:hover{border-color:#33d6e0}
+  #paint .pb.on{border-color:#33d6e0;color:#33d6e0}
+  #paint .phint{font-size:10px;color:#8b93a7;line-height:1.4}
+  /* hire panel */
+  #hire{top:70px;right:14px;bottom:16px;width:240px;padding:14px;overflow:auto}
+  #hire h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#33d6e0;margin-bottom:10px}
+  .card{display:flex;gap:10px;align-items:center;padding:9px;border:1px solid #2a3052;border-radius:11px;margin-bottom:8px;background:#0e1124;transition:.15s}
+  .card:hover{border-color:#33d6e0;transform:translateY(-1px)}
+  .card img{width:46px;height:46px;border-radius:10px;object-fit:cover;background:#1c2030;flex:none}
+  .card .nm{font-weight:600;font-size:14px}.card .rl{font-size:11px;color:#8b93a7}
+  .card .pr{font-size:11px;color:#ffc955;margin-top:2px}
+  .card .hireb{margin-left:auto;background:#0b2a2c;color:#33d6e0;border:1px solid #1c4a4d;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer}
+  .card .hireb:hover{background:#33d6e0;color:#04222a}
+  /* inspector overlay */
+  #insp{top:0;right:-380px;width:360px;height:100vh;border-radius:0;border-left:1px solid #2a3052;padding:20px;overflow:auto;transition:right .25s ease}
+  #insp.open,#chat.open{right:0}
+  #chat{top:0;right:-380px;width:360px;height:100vh;border-radius:0;border-left:1px solid #2a3052;display:flex;flex-direction:column;transition:right .25s ease}
+  .msg{max-width:85%;padding:8px 11px;border-radius:10px;font-size:13px;line-height:1.5;white-space:pre-wrap}
+  .msg.me{align-self:flex-end;background:#0b2a2c;color:#cfeef0}
+  .msg.ag{align-self:flex-start;background:#161b33;color:#e8eaf0}
+  #insp h2{font-size:18px;margin-bottom:2px}
+  #insp .role{color:#8b93a7;font-size:13px;margin-bottom:14px}
+  #insp label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#8b93a7;margin:12px 0 5px}
+  #insp input,#insp select,#insp textarea{width:100%;background:#0c0e1a;border:1px solid #2a3052;color:#fff;border-radius:8px;padding:9px 11px;font:inherit}
+  #insp textarea{min-height:70px;resize:vertical}
+  .avwrap{display:flex;gap:12px;align-items:center}
+  #avImg{width:84px;height:84px;border-radius:14px;object-fit:cover;border:1px solid #2a3052;background:#1c2030;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;background:#0c0e1a;border:1px solid #2a3052;border-radius:14px;padding:4px 10px;cursor:pointer;color:#8b93a7}
+  .chip.on{background:#0b2a2c;border-color:#1c4a4d;color:#33d6e0}
+  .ck{display:flex;gap:6px;align-items:center;background:#0c0e1a;border:1px solid #2a3052;padding:5px 9px;border-radius:8px;font-size:12px;cursor:pointer}.ck input{width:auto}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0b2a2c;color:#33d6e0;border:1px solid #1c4a4d;padding:10px 18px;border-radius:10px;z-index:20;display:none;font-size:13px}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="canvas"></div>
+
+<div class="panel" id="top">
+  <input id="genPrompt" placeholder="✨ ketik 3D: cafe lucu, gedung, pohon…" style="width:240px" onkeydown="if(event.key==='Enter')W.gen3D()" />
+  <button class="btn" onclick="W.gen3D()">🧊 Generate 3D</button>
+  <span style="width:1px;align-self:stretch;background:#2a3052;margin:0 3px"></span>
+  <input id="roomName" value="Kantorku" style="width:130px" />
+  <button class="btn" onclick="W.save()">💾 Simpan</button>
+  <button class="btn ghost" onclick="W.reset()">↺</button>
+</div>
+
+<div class="panel" id="dock"></div>
+<div class="panel" id="paint"></div>
+
+<div class="panel" id="hire">
+  <h3>🧑‍💼 Hire Agent</h3>
+  <div id="cards"></div>
+  <h3 style="margin-top:14px">ℹ️</h3>
+  <div style="font-size:12px;color:#8b93a7;line-height:1.5">Klik <b style="color:#33d6e0">Hire</b> → klik petak di dunia untuk menempatkan. Klik agent yang sudah ada untuk customize.</div>
+</div>
+
+<div class="panel" id="insp">
+  <div id="inspBody"></div>
+</div>
+
+<div class="panel" id="chat">
+  <div style="padding:14px 18px;border-bottom:1px solid #2a3052;display:flex;align-items:center;gap:10px">
+    <img id="chatAv" style="width:40px;height:40px;border-radius:10px;object-fit:cover;background:#1c2030">
+    <div style="flex:1"><div id="chatName" style="font-weight:600"></div><div style="font-size:11px;color:#8b93a7">agent · Hermes</div></div>
+    <button class="btn ghost" title="Customize" onclick="W.customize()">⚙</button>
+    <button class="btn ghost" onclick="W.closeChat()">✕</button>
+  </div>
+  <div id="chatMsgs" style="flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px"></div>
+  <div style="padding:12px;border-top:1px solid #2a3052;display:flex;gap:8px">
+    <input id="chatIn" placeholder="Tanya agent..." style="flex:1;background:#0c0e1a;border:1px solid #2a3052;color:#fff;border-radius:8px;padding:9px 11px;font:inherit" onkeydown="if(event.key==='Enter')W.sendChat()">
+    <button class="btn" onclick="W.sendChat()">Kirim</button>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="./config.js"></script>
+<script type="module">
+import { WorldLite } from './world-lite.js?v=15';
+
+const $=(s)=>document.querySelector(s);
+const toast=(m)=>{const t=$('#toast');t.innerHTML=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2600);};
+
+// ── katalog (demo inline; produksi = GET /api/v1/marketplace/npcs) ──
+const STYLES=['cute 3D chibi vinyl toy','low-poly 3D character','anime style','pixel art','realistic 3D render','flat cartoon'];
+const OBJ=[['desk','Meja','#4a7bd8'],['chair','Kursi','#d85a8a'],['plant','Tanaman','#3ddc84'],['board','Papan','#ffc955'],['portal','Portal','#33d6e0'],['shelf','Rak','#9a7b4f']];
+const TEMPLATES=[
+  {id:'sari',name:'Sari',role:'Chief Strategy',price:200,desc:'wise strategist woman, blazer, confident'},
+  {id:'dewi',name:'Dewi',role:'Creative Director',price:150,desc:'creative designer woman, beret, stylus'},
+  {id:'reza',name:'Reza',role:'Lead Developer',price:150,desc:'programmer man, hoodie, glasses, laptop'},
+  {id:'rina',name:'Rina',role:'Marketing',price:100,desc:'marketing woman, headset, friendly smile'},
+  {id:'sasa',name:'Sasa',role:'Social Media',price:100,desc:'social media manager woman, phone, trendy'},
+  {id:'toard',name:'Prof. Toard',role:'Research',price:300,desc:'wise professor, white hair, round glasses, glowing book'},
+];
+const ROUTER=[['nousresearch/hermes-4-70b','Hermes 4 70B'],['Qwen/Qwen2.5-7B-Instruct','Qwen2.5 7B'],['gemini-2.5-flash','Gemini 2.5 Flash']];
+const EXEC=[['claude-sonnet-4-20250514','Claude Sonnet 4'],['claude-haiku-4-5-20251001','Claude Haiku 4.5'],['gpt-4o','GPT-4o'],['gemini-2.5-flash','Gemini 2.5 Flash']];
+const TOOLS=['image_gen','video_gen','web_search','note_write','tts','remove_bg'];
+const avatarUrl=(style,desc,seed)=>'https://image.pollinations.ai/prompt/'+encodeURIComponent(style+', '+desc+', pastel, soft lighting, upper body')+'?width=400&height=400&nologo=true&model=flux&seed='+seed;
+
+const wl=new WorldLite($('#canvas'),{mode:'build'}); window.wl=wl;
+const GEN=/localhost|127\.0\.0\.1|:8\d{3}/.test(location.host)?'https://ops.mighan.com':'';
+const _params=new URLSearchParams(location.search); let worldId=_params.get('world')||'';
+const DEMO={grid:{w:12,h:12},theme:{bg:'#0a0c14',floor:'#1c2030'},objects:[{type:'desk',tile:[4,4]},{type:'chair',tile:[4,5]},{type:'plant',tile:[1,1]}],agents:[]};
+wl.loadScene(DEMO);
+async function loadWorld(){ if(!worldId)return; try{ const r=await fetch(GEN+'/api/gen/world/'+encodeURIComponent(worldId)); const d=await r.json(); if(d.ok&&d.world){ wl.loadScene({grid:d.world.grid||DEMO.grid,theme:d.world.theme||DEMO.theme,objects:d.world.objects||[],agents:d.world.agents||[],floors:d.world.floors||[],zones:d.world.zones||[]}); if(d.world.name)$('#roomName').value=d.world.name; toast('🌍 dunia "'+(d.world.name||worldId)+'" dimuat'); } }catch(e){} }
+loadWorld();
+
+// object dock (drag) + asset library (klik → taruh)
+$('#dock').innerHTML=OBJ.map(([t,l,c])=>`<div class="o" draggable="true" data-type="${t}"><span class="sw" style="background:${c}"></span>${l}</div>`).join('')
+  +'<span style="width:1px;align-self:stretch;background:#2a3052;margin:0 4px"></span>'
+  +'<span id="libList" style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;color:#8b93a7">📦 library…</span></span>';
+let drag=null;
+document.querySelectorAll('#dock .o').forEach(el=>el.addEventListener('dragstart',()=>drag={kind:'object',type:el.dataset.type}));
+const cv=$('#canvas');
+cv.addEventListener('dragover',e=>e.preventDefault());
+cv.addEventListener('drop',e=>{e.preventDefault();if(drag)wl.dropAt(e.clientX,e.clientY,drag);});
+
+// ── Asset Library (hasil Asset Studio → /api/gen/assets) → klik untuk taruh di dunia ──
+async function loadLibrary(){
+  try{
+    const r=await fetch(GEN+'/api/gen/assets'); const d=await r.json();
+    const items=(d.assets||[]).filter(a=>a.hasSpec||a.hasModel);
+    $('#libList').innerHTML = items.length
+      ? items.slice(0,12).map(a=>`<div class="o" data-libid="${a.id}" title="${(a.name||a.id)}"><span style="font-size:16px">🧊</span>${String(a.name||a.id).slice(0,10)}</div>`).join('')
+      : '<span style="font-size:11px;color:#8b93a7">belum ada aset — bikin di Asset Studio</span>';
+    document.querySelectorAll('#libList .o').forEach(el=>el.addEventListener('click',async()=>{
+      const tile=[3+Math.floor(Math.random()*6),3+Math.floor(Math.random()*6)];
+      toast('📦 menaruh aset…'); try{ await wl.placeObjectFromLibrary(el.dataset.libid,tile); toast('✅ aset ditaruh @ ['+tile+']'); }catch(e){ toast('gagal taruh aset'); }
+    }));
+  }catch(e){ $('#libList').innerHTML='<span style="font-size:11px;color:#8b93a7">library offline</span>'; }
+}
+loadLibrary();
+
+// ── S4(B): Floor painter + Zona ──
+const FLOORS=[['#3a4668','Lantai'],['#2e5b3a','Rumput'],['#6b4a2e','Kayu'],['#2e5160','Air'],['#5b2e52','Karpet'],['#7a6a3a','Pasir']];
+$('#paint').innerHTML='<div class="ph">🎨 Lantai &amp; Zona</div>'
+  +'<div class="prow">'+FLOORS.map(([c,l])=>`<span class="ps" data-c="${c}" title="${l}" style="background:${c}"></span>`).join('')+'</div>'
+  +'<div class="prow"><button class="pb" id="pErase">🧽 Hapus</button><button class="pb" id="pPick">🖱️ Pilih</button></div>'
+  +'<button class="pb" id="pZone">🟦 Buat Zona</button>'
+  +'<div class="phint" id="pHint">klik warna → cat petak lantai</div>';
+function _paintHint(t){ $('#pHint').textContent=t; }
+function _paintClear(){ document.querySelectorAll('#paint .ps,#paint .pb').forEach(s=>s.classList.remove('on')); }
+document.querySelectorAll('#paint .ps').forEach(s=>s.addEventListener('click',()=>{ _paintClear(); s.classList.add('on'); wl.setPaint(s.dataset.c); _paintHint('🖌️ cat lantai — klik petak'); }));
+$('#pErase').addEventListener('click',()=>{ _paintClear(); $('#pErase').classList.add('on'); wl.setPaint('__erase__'); _paintHint('🧽 hapus lantai — klik petak'); });
+$('#pPick').addEventListener('click',()=>{ _paintClear(); wl.setPaint(null); wl.setZone(null); _paintHint('🖱️ mode pilih / chat agent'); });
+$('#pZone').addEventListener('click',()=>{ const lbl=prompt('Nama zona (mis. Marketing):','Zona'); if(lbl===null)return; _paintClear(); $('#pZone').classList.add('on'); wl.setZone({color:'#33d6e0',label:lbl||''}); _paintHint('🟦 klik 2 sudut area zona'); });
+wl.on('zone:corner',()=>_paintHint('🟦 sudut 1 ✓ — klik sudut 2'));
+wl.on('zone:done',d=>{ wl.setZone(null); _paintClear(); _paintHint('✅ zona dibuat — klik tool lain'); toast('🟦 zona "'+(d.label||'')+'" dibuat'); });
+
+// hire cards
+$('#cards').innerHTML=TEMPLATES.map((t,i)=>`<div class="card">
+  <img src="${avatarUrl(STYLES[0],t.desc,100+i)}" alt="${t.name}">
+  <div><div class="nm">${t.name}</div><div class="rl">${t.role}</div><div class="pr">💎 ${t.price} IX</div></div>
+  <button class="hireb" data-i="${i}">Hire</button></div>`).join('');
+document.querySelectorAll('.hireb').forEach(b=>b.addEventListener('click',()=>{
+  const t=TEMPLATES[b.dataset.i];
+  wl.startPlacing({kind:'agent',id:t.id+'-'+Math.random().toString(36).slice(2,6),name:t.name,role:t.role,avatarUrl:avatarUrl(STYLES[0],t.desc,100+(+b.dataset.i)),persona:'Kamu '+t.name+', '+t.role+'. Jawab ringkas, Bahasa Indonesia.',controllerModel:'nousresearch/hermes-4-70b',executorModel:'gemini-2.5-flash',tools:['web_search','note_write'],_desc:t.desc});
+  toast('🪄 <b>'+t.name+'</b> siap — klik petak di dunia untuk menempatkan');
+}));
+
+// click agent → inspector
+wl.on('place',d=>{ if(d.kind==='agent') toast('✅ Agent ditempatkan @ ['+d.tile+']'); });
+wl.on('agent:click',d=>openChat(d.id));
+
+let curId=null;
+function openInspector(id){
+  const e=wl.getAgent(id); if(!e)return; const a=e.a; curId=id;
+  const opts=(list,sel)=>list.map(o=>`<option value="${o[0]}"${o[0]===sel?' selected':''}>${o[1]}</option>`).join('');
+  $('#inspBody').innerHTML=`
+    <button class="btn ghost" style="float:right" onclick="W.closeInsp()">✕</button>
+    <h2>${a.name||id}</h2><div class="role">agent di dunia-mu</div>
+    <label>Avatar</label>
+    <div class="avwrap">
+      <img id="avImg" src="${a.avatarUrl||''}">
+      <div style="flex:1">
+        <input id="avPrompt" value="${(a._desc||'').replace(/"/g,'')}" placeholder="deskripsi tampilan">
+        <div class="chips" id="avStyles" style="margin-top:6px">${STYLES.map((s,i)=>`<span class="chip${i===0?' on':''}" data-s="${s}">${s.split(' ').slice(0,2).join(' ')}</span>`).join('')}</div>
+        <button class="btn" style="margin-top:8px;width:100%" onclick="W.regenAvatar()">🎨 Generate Avatar</button>
+        <button class="btn ghost" style="margin-top:6px;width:100%" onclick="W.make3D()">🧊 Jadikan 3D (avatar→model)</button>
+      </div>
+    </div>
+    <label>Nama</label><input id="fName" value="${a.name||''}">
+    <label>Role</label><input id="fRole" value="${a.role||''}">
+    <label>Persona</label><textarea id="fPersona">${a.persona||''}</textarea>
+    <div class="row2"><div><label>Base Hermes (otak)</label><select id="fCtl">${opts(ROUTER,a.controllerModel)}</select></div>
+    <div><label>LLM (eksekutor)</label><select id="fExec">${opts(EXEC,a.executorModel)}</select></div></div>
+    <label>Tools / Skill</label><div class="chips">${TOOLS.map(t=>`<label class="ck"><input type="checkbox" value="${t}" ${(a.tools||[]).includes(t)?'checked':''}> ${t}</label>`).join('')}</div>
+    <div class="row2" style="margin-top:16px"><button class="btn" onclick="W.saveAgent()">💾 Simpan</button><button class="btn ghost" onclick="W.removeAgent()">🗑 Pecat</button></div>`;
+  $('#insp').classList.add('open');
+  let style=STYLES[0];
+  document.querySelectorAll('#avStyles .chip').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('#avStyles .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');style=c.dataset.s;}));
+  W._style=()=>style;
+}
+
+window.wl=wl; window.openInspector=openInspector;   // debug/embed hook
+
+// ── klik NPC → chat agent (via gateway Hermes /api/hermes/run, scoped per agent) ──
+let chatId=null;
+function openChat(id){ const e=wl.getAgent(id); if(!e)return; const a=e.a; chatId=id;
+  $('#insp').classList.remove('open');
+  $('#chatName').textContent=a.name||id; $('#chatAv').src=a.avatarUrl||'';
+  $('#chatMsgs').innerHTML=''; bubble('ag','👋 Halo, aku '+(a.name||'agent')+(a.role?(' — '+a.role):'')+'. Ada yang bisa kubantu?');
+  $('#chat').classList.add('open'); setTimeout(()=>$('#chatIn').focus(),120);
+}
+function bubble(who,text){ const d=document.createElement('div'); d.className='msg '+(who==='me'?'me':'ag'); d.textContent=text; $('#chatMsgs').appendChild(d); $('#chatMsgs').scrollTop=1e9; return d; }
+function showThought(id,on){ const e=wl.getAgent(id); const nm=e?(e.a.name||id):id; let el=document.getElementById('thinking');
+  if(on){ if(!el){el=document.createElement('div');el.id='thinking';el.style.cssText='position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:#0b2a2c;color:#33d6e0;border:1px solid #1c4a4d;padding:6px 14px;border-radius:20px;font-size:12px;z-index:30';document.body.appendChild(el);} el.textContent='💭 '+nm+' sedang berpikir…'; el.style.display='block'; }
+  else if(el){ el.style.display='none'; } }
+window.openChat=openChat;
+window.W={
+  closeChat(){$('#chat').classList.remove('open');chatId=null;},
+  customize(){$('#chat').classList.remove('open');openInspector(chatId);},
+  async sendChat(){ const inp=$('#chatIn'); const msg=(inp.value||'').trim(); if(!msg||!chatId)return; inp.value=''; bubble('me',msg);
+    const e=wl.getAgent(chatId); const a=e?e.a:{}; const t=bubble('ag','💭 …'); showThought(chatId,true);
+    try{
+      const r=await fetch(GEN+'/api/gen/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({agentId:chatId,message:msg,persona:a.persona,controllerModel:a.controllerModel,executorModel:a.executorModel,tools:a.tools})});
+      const j=await r.json();
+      if(j&&j.reply){ t.textContent=j.reply; if(j.ok&&j.image){const im=document.createElement('img');im.src=j.image;im.style.cssText='max-width:100%;border-radius:10px;margin-top:6px;display:block;border:1px solid #2a3052';t.appendChild(im);} }
+      else t.textContent='⚠ '+((j&&j.error)||'gagal');
+    }catch(err){ t.textContent='(offline) gagal menghubungi agent — cek gateway'; }
+    showThought(chatId,false); $('#chatMsgs').scrollTop=1e9;
+  },
+  closeInsp(){$('#insp').classList.remove('open');curId=null;},
+  regenAvatar(){const url=avatarUrl(W._style(),$('#avPrompt').value||'character',Math.floor(Math.random()*99999));$('#avImg').src=url;wl.updateAgentAvatar(curId,url);},
+  async make3D(){
+    if(!curId)return; const e=wl.getAgent(curId); const a=e?e.a:{}; const img=a.avatarUrl||$('#avImg').src;
+    if(!img){toast('belum ada avatar');return;}
+    toast('🧊 Generate 3D dari avatar… (RunPod, run pertama bisa beberapa menit)');
+    try{
+      const sub=await (await fetch(GEN+'/api/gen/3d',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:img,mode:'triposr'})})).json();
+      const jid=sub&&sub.jobId;
+      if(!jid){toast('demo/gagal: '+((sub&&(sub.error||sub.message))||'butuh gateway'));return;}
+      if(sub.mode==='fallback'){toast('engine fallback (RunPod blm aktif di server ini)');return;}
+      for(let i=0;i<75;i++){ await new Promise(r=>setTimeout(r,4000));
+        const st=await (await fetch(GEN+'/api/gen/3d/'+jid)).json();
+        const status=String(st.status||'').toUpperCase(); const o=st.output||st;
+        if(status.includes('FAIL')){toast('gagal generate 3D');return;}
+        if(status.includes('COMPLET')||o.mesh_base64||o.mesh_url){
+          let url=o.mesh_url||o.meshUrl;
+          if(!url&&o.mesh_base64){const b=atob(o.mesh_base64);const arr=new Uint8Array(b.length);for(let k=0;k<b.length;k++)arr[k]=b.charCodeAt(k);url=URL.createObjectURL(new Blob([arr],{type:'model/gltf-binary'}));}
+          if(url){await wl.setAgentModel(curId,url);toast('✅ Model 3D dari avatar dipasang!');}
+          else toast('selesai tapi tanpa mesh ('+(o.mode||o.note||'')+')');
+          return;
+        }
+        if(i===2)toast('⏳ RunPod cold-start… sabar ya');
+      }
+      toast('masih proses (cold-start lama) — coba lagi sebentar');
+    }catch(err){toast('demo offline — butuh gateway untuk 3D');}
+  },
+  saveAgent(){const tools=[...document.querySelectorAll('#insp .ck input:checked')].map(x=>x.value);
+    wl.updateAgent(curId,{name:$('#fName').value,role:$('#fRole').value,persona:$('#fPersona').value,controllerModel:$('#fCtl').value,executorModel:$('#fExec').value,tools, _desc:$('#avPrompt').value});
+    toast('💾 <b>'+$('#fName').value+'</b> tersimpan');W.closeInsp();},
+  removeAgent(){wl.removeAgent(curId);toast('🗑 agent dipecat');W.closeInsp();},
+  async save(){const j=wl.toJSON();let sid=null;
+    try{const r=await fetch(GEN+'/api/gen/world',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:worldId||undefined,name:$('#roomName').value,world:j})});const d=await r.json();if(d.ok&&d.id){worldId=d.id;sid=d.id;const u=new URL(location.href);u.searchParams.set('world',worldId);history.replaceState(null,'',u);}}catch(e){}
+    try{window.parent.postMessage({source:'world-lite',evt:'save',detail:Object.assign({id:worldId,name:$('#roomName').value},j)},'*');}catch(e){}
+    toast(sid?('💾 Dunia tersimpan: '+sid+' — '+j.objects.length+' objek, '+j.agents.length+' agent (buka lagi: ?world='+sid+')'):'💾 disimpan lokal (server offline)');},
+  reset(){location.reload();},
+  async gen3D(){ const p=($('#genPrompt').value||'').trim(); if(!p){toast('ketik dulu apa yang mau dibuat (mis. "cafe lucu 2 lantai")');return;}
+    toast('🧊 menggenerate 3D dari prompt… (~10-15 dtk)');
+    try{ const r=await fetch(GEN+'/api/gen/model',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({prompt:p})}); const d=await r.json();
+      if(!d||!d.ok||!d.url){toast('gagal: '+((d&&d.error)||'tidak ada model'));return;}
+      const tile=[3+Math.floor(Math.random()*6),3+Math.floor(Math.random()*6)];
+      await wl.placeModelUrl(GEN+d.url,tile,{height:2,name:(d.spec&&d.spec.label)||p});
+      toast('✅ "'+p+'" → 3D @ ['+tile+'] ('+((d.spec&&d.spec.kind)||'')+')'); $('#genPrompt').value='';
+    }catch(e){toast('gagal — cek koneksi/gateway');}
+  }
+};
+</script>
+</body>
+</html>

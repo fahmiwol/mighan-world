@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mighan Town — Playground Publik</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#141432;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif}
+  #canvas{position:fixed;inset:0}
+  .chip{position:fixed;left:18px;top:16px;z-index:6;background:rgba(20,16,44,.82);border:1px solid #4a4680;
+    color:#eaf2ff;font-size:12px;padding:8px 14px;border-radius:20px;backdrop-filter:blur(6px)}
+  .chip b{color:#ffd76a}
+  #hint{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:6;background:rgba(20,16,44,.82);
+    border:1px solid #4a4680;color:#cdd4f5;font-size:12px;padding:8px 16px;border-radius:20px;backdrop-filter:blur(6px);
+    transition:opacity .5s}
+  #prompt{position:fixed;left:50%;transform:translateX(-50%);bottom:64px;z-index:7;background:linear-gradient(135deg,#7c3aed,#5a8cff);
+    color:#fff;font-size:13px;font-weight:700;padding:10px 20px;border-radius:24px;cursor:pointer;border:0;
+    box-shadow:0 6px 24px rgba(124,58,237,.45);display:none}
+  #panel{position:fixed;right:16px;top:16px;bottom:16px;width:min(340px,86vw);z-index:8;display:none;flex-direction:column;
+    background:rgba(18,14,38,.94);border:1px solid #4a4680;border-radius:18px;padding:22px;color:#eaf2ff;backdrop-filter:blur(10px)}
+  #panel h2{font-size:20px;margin-bottom:2px}
+  #panel .tag{font-size:11px;color:#a9b2dd;margin-bottom:12px}
+  #panel p{font-size:13px;color:#cdd4f5;line-height:1.55;margin-bottom:12px}
+  #panel ul{margin:0 0 16px 18px;font-size:12.5px;color:#b9c2e8;line-height:1.7}
+  #panel .cta{display:block;text-align:center;background:linear-gradient(135deg,#7c3aed,#5a8cff);color:#fff;font-weight:700;
+    font-size:13px;padding:12px;border-radius:12px;text-decoration:none;margin-bottom:8px}
+  #panel .cta.ghost{background:transparent;border:1px solid #4a4680;color:#cdd4f5}
+  #panel .x{position:absolute;right:14px;top:12px;background:none;border:0;color:#a9b2dd;font-size:18px;cursor:pointer}
+  #bubble{position:fixed;z-index:7;max-width:260px;background:#fff;color:#1a2240;font-size:12.5px;line-height:1.5;
+    padding:10px 14px;border-radius:14px 14px 14px 4px;box-shadow:0 8px 30px rgba(0,0,0,.35);display:none}
+  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#141432;
+    color:#8a8ac8;font-size:13px;z-index:9;transition:opacity .6s}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="canvas"></div>
+<div class="chip">🌙 <b>Mighan Town</b> — jalan-jalan &amp; coba fiturnya. Beta publik, gratis.</div>
+<div id="hint">🕹️ <b>WASD</b> / klik tanah untuk jalan · dekati gedung lalu tekan <b>E</b></div>
+<button id="prompt"></button>
+<div id="panel"><button class="x" onclick="closePanel()">✕</button><div id="panel-body"></div></div>
+<div id="bubble"></div>
+<div id="loading">membangun kota…</div>
+
+<script src="./config.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import { WorldLite } from './world-lite.js?v=18';
+import { ToyTown } from './toytown.js?v=3';
+
+const EMBED = new URLSearchParams(location.search).has('embed');
+const G = 18;
+const wl = new WorldLite(document.getElementById('canvas'), { mode: 'view', bloom: true });
+wl.loadScene({ grid: { w: G, h: G }, objects: [], agents: [] });
+const town = new ToyTown(wl, { theme: 'night' });
+
+// bloom sedikit lebih kuat utk malam neon (threshold turun → emissive & sign ikut glow)
+try { const bp = wl.composer.passes.find((p) => p.strength != null); if (bp) { bp.strength = 0.55; bp.threshold = 0.72; } } catch (e) {}
+// kamera: mulai agak jauh, boleh zoom + orbit; pan dikendalikan follow-player
+wl.controls.minZoom = 0.6; wl.controls.maxZoom = 3;
+
+// ── layout kota (plaza tengah + air mancur, ring jalan, gedung fitur di sekeliling) ──
+const C = Math.floor(G / 2);              // 9
+town.road([2, 6], [15, 6], 1.3);          // jalan utara (horizontal)
+town.road([2, 12], [15, 12], 1.3);        // jalan selatan
+town.road([3, 6], [3, 12], 1.3);          // barat (vertical)
+town.road([14, 6], [14, 12], 1.3);        // timur
+town.crosswalk([8, 6], false); town.crosswalk([8, 12], false);
+town.plaza([C, 9], 5.4, 3.6);             // plaza batu tengah
+town.fountain([C, 9]);
+
+// gedung fitur — tiap gedung = 1 produk SaaS (kartu demo + CTA)
+const BUILDINGS = [
+  { key: 'cafe',   tile: [3, 3],  w: 1.5, d: 1.5, h: 2.5, color: 0x8a6fd8, accent: 0xb98cff, sign: 'CAFE',   prop: 'gem',
+    title: '☕ NPC Cafe', tag: 'AI Agent Chat', desc: 'Ngobrol dengan AI agent yang punya persona, memori, dan pekerjaan sendiri. Di dunia aslimu, tiap NPC bisa kamu beri otak LLM pilihanmu (BYO key) — atau pakai default gratis Mighan.',
+    points: ['NPC dengan persona + memori', 'Chat streaming real-time', 'Pilih model per-agent (Claude/GPT/Gemini/…)'],
+    cta: [['Daftar Gratis → punya NPC sendiri', 'https://mighan.com/register'], ['Lihat semua fitur', 'https://mighan.com/#features']] },
+  { key: 'shop',   tile: [8, 3],  w: 1.6, d: 1.5, h: 2.1, color: 0xd88a4f, accent: 0xffb45c, sign: 'SHOP',   prop: 'ac',
+    title: '🛍️ Marketplace', tag: 'NPC & Objek', desc: 'Hire NPC siap pakai (desainer, penulis, peneliti…) dan pasang objek untuk duniamu. Bayar pakai IX coin — tier gratis sudah dapat slot.',
+    points: ['13+ NPC siap hire', '15+ objek dunia', 'Tier Free: 1 room · 3 NPC · 20 objek'],
+    cta: [['Buka Marketplace', 'https://mighan.com/dashboard/marketplace'], ['Daftar Gratis', 'https://mighan.com/register']] },
+  { key: 'arcade', tile: [13, 3], w: 1.5, d: 1.5, h: 2.3, color: 0xc85a9a, accent: 0xff6ec7, sign: 'ARCADE', prop: 'star',
+    title: '🕹️ World Builder', tag: 'Bangun duniamu', desc: 'Editor drag-drop untuk menyusun dunia isometrikmu: lantai, zona, objek, NPC. Coba langsung di tab Builder — tanpa login.',
+    points: ['Drag-drop objek & NPC', 'Cat lantai + zona berlabel', 'Simpan dunia setelah daftar'],
+    cta: [['Coba Builder sekarang', './builder.html'], ['Daftar untuk menyimpan', 'https://mighan.com/register']] },
+  { key: 'office', tile: [15, 9], w: 1.7, d: 1.6, h: 3.0, color: 0x5a7fd8, accent: 0x6fb1ff, sign: 'OFFICE', prop: 'antenna',
+    title: '🏢 Agent Workforce', tag: 'Agen kerja 24/7', desc: 'Di kantor pusat Mighan, 50+ AI agent bekerja nonstop: riset, desain, konten, upload microstock, CRM. Duniamu bisa punya workforce yang sama.',
+    points: ['Heartbeat & workflow otonom', 'SOP visual (drag node)', 'Agent belajar skill sendiri'],
+    cta: [['Daftar Gratis', 'https://mighan.com/register'], ['Pelajari use case', 'https://mighan.com/#usecases']] },
+  { key: 'bank',   tile: [13, 15], w: 1.6, d: 1.6, h: 1.9, color: 0xd8c48a, accent: 0xffd76a, sign: 'BANK',  roof: 'dome',
+    title: '🏦 IX Wallet', tag: 'Koin dunia', desc: 'IX coin = mata uang dunia Mighan: hire NPC, beli objek, jalankan agen. Top-up hanya kalau butuh — tier gratis cukup untuk mencoba semuanya.',
+    points: ['Saldo & riwayat transparan', 'Auto-approve limit aman', 'Terhubung ekosistem Ixonomic'],
+    cta: [['Lihat Plans', 'https://mighan.com/dashboard/wallet'], ['Daftar Gratis', 'https://mighan.com/register']] },
+  { key: 'studio', tile: [3, 15], w: 1.6, d: 1.5, h: 2.2, color: 0x5ab8a8, accent: 0x4fe0c8, sign: 'STUDIO', prop: 'gem',
+    title: '🎨 Design Studio', tag: 'Canvas · AI Gen · Foto', desc: 'Rangkaian tool kreatif: AI image gen, canvas editor, remove background, photo filter — terhubung langsung ke duniamu.',
+    points: ['AI image generator (gratis)', 'Canvas + template', 'Remove-BG & photo filter'],
+    cta: [['Daftar Gratis', 'https://mighan.com/register'], ['Lihat fitur Studio', 'https://mighan.com/#studio']] },
+];
+BUILDINGS.forEach((b) => town.building(b));
+
+// dekorasi: pohon, semak, bunga, lampu, bangku, pagar
+[[1,7],[1,10],[6,1],[11,1],[16,7],[16,11],[6,16],[10,16],[1,1],[16,1],[1,16],[16,16]].forEach((t,i)=>town.tree(t,{pine:i%3===0,scale:0.9+((i*7)%4)*0.1,color:[0x5cb860,0x4fae66,0x66c473][i%3]}));
+[[5,8],[12,8],[5,10],[12,10],[8,14],[9,4]].forEach((t)=>town.bush(t));
+[[6,8],[11,10],[7,13],[10,5]].forEach((t)=>town.flowerPatch(t));
+[[5,6],[11,6],[5,12],[11,12],[14,8],[3,10],[8,8],[9,10]].forEach((t,i)=>town.lamp(t,{light:i<2}));
+town.bench([7,8],Math.PI); town.bench([10,8],Math.PI); town.bench([7,10],0); town.bench([10,10],0);
+town.fence([0,4],[0,14]); town.fence([17,4],[17,14]);
+town.moon(); town.stars(110); town.clouds(5); town.attachTick();
+
+// ── player chibi (kamu) ──
+wl.placeAgent({ id: 'me', name: EMBED ? '' : 'Kamu', tile: [C, 13], appearance: { shirt: '#5a8cff', hair: '#2a1a00', expression: 'happy' } });
+const me = wl.getAgent('me');
+me.grp.userData.bob = false;                       // bob diganti animasi jalan
+const player = { pos: me.grp.position, target: null, speed: 2.6, moving: false, phase: 0 };
+
+// NPC warga jalan-jalan (hidupkan kota)
+const paths = [
+  [[4,7],[13,7],[13,11],[4,11]],
+  [[2,5],[15,5],[15,13],[2,13]],
+];
+const walkers = [];
+paths.forEach((path, pi) => {
+  for (let k = 0; k < 3; k++) {
+    const id = 'w' + pi + k;
+    wl.placeAgent({ id, name: '', tile: path[0] });   // appearance default = seeded dari id (variatif)
+    const e = wl.getAgent(id); e.grp.userData.bob = false;
+    walkers.push({ id, path: path.map((t) => wl._world(t, 0)), i: Math.floor(k / 3 * path.length), speed: 0.8 + Math.random() * 0.5, phase: Math.random() * 6 });
+  }
+});
+// barista di depan cafe (dialog bubble)
+wl.placeAgent({ id: 'barista', name: 'Dewi', tile: [4, 5], appearance: { shirt: '#b98cff', hair: '#800020', hairStyle: 'ponytail', expression: 'happy' } });
+const LINES = [
+  'Halo! Selamat datang di Mighan Town ✨',
+  'Semua gedung di sini fitur beneran — dekati lalu tekan E!',
+  'Aku Dewi, AI agent. Di duniamu nanti, aku bisa kerja untukmu.',
+  'Coba Builder di gedung ARCADE — gratis, tanpa login.',
+];
+
+// ── movement: WASD + klik tanah ──
+const keys = {};
+addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; if (e.key.toLowerCase() === 'e') tryInteract(); });
+addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+wl.renderer.domElement.addEventListener('click', (e) => {
+  const t = wl._tileFromPoint(e.clientX, e.clientY);
+  if (t) player.target = wl._world(t, 0);
+});
+
+// collision AABB gedung (jaga player tak nembus)
+const solids = BUILDINGS.map((b) => { const p = wl._world(b.tile, 0); return { x: p.x, z: p.z, hw: b.w / 2 + 0.25, hd: b.d / 2 + 0.25 }; });
+const fountainSolid = (() => { const p = wl._world([C, 9], 0); return { x: p.x, z: p.z, r: 0.85 }; })();
+function collide(nx, nz) {
+  for (const s of solids) if (Math.abs(nx - s.x) < s.hw && Math.abs(nz - s.z) < s.hd) return true;
+  const dx = nx - fountainSolid.x, dz = nz - fountainSolid.z;
+  if (dx * dx + dz * dz < fountainSolid.r * fountainSolid.r) return true;
+  return false;
+}
+
+// ── interaksi gedung ──
+const promptEl = document.getElementById('prompt'), panel = document.getElementById('panel'), body = document.getElementById('panel-body');
+let near = null;
+function tryInteract() { if (near) openPanel(near); }
+promptEl.addEventListener('click', tryInteract);
+function openPanel(key) {
+  const b = BUILDINGS.find((x) => x.key === key); if (!b) return;
+  body.innerHTML = '<h2>' + b.title + '</h2><div class="tag">' + b.tag + '</div><p>' + b.desc + '</p>' +
+    '<ul>' + b.points.map((p) => '<li>' + p + '</li>').join('') + '</ul>' +
+    b.cta.map(([label, href], i) => '<a class="cta' + (i ? ' ghost' : '') + '" target="_top" href="' + href + '">' + label + '</a>').join('');
+  panel.style.display = 'flex';
+  try { parent.postMessage({ source: 'mighan-town', evt: 'panel', key }, '*'); } catch (e) {}
+}
+window.closePanel = () => { panel.style.display = 'none'; };
+
+// ── bubble barista ──
+const bubble = document.getElementById('bubble');
+let lineIdx = 0;
+function showBubble() {
+  const b = wl.getAgent('barista'); if (!b) return;
+  const v = b.grp.position.clone(); v.y = 2.1; v.project(wl.camera);
+  const r = wl.renderer.domElement.getBoundingClientRect();
+  bubble.style.left = ((v.x * 0.5 + 0.5) * r.width + 12) + 'px';
+  bubble.style.top = ((-v.y * 0.5 + 0.5) * r.height - 20) + 'px';
+  bubble.textContent = LINES[lineIdx % LINES.length]; lineIdx++;
+  bubble.style.display = 'block';
+  setTimeout(() => { bubble.style.display = 'none'; }, 4200);
+}
+setTimeout(showBubble, 1600); setInterval(showBubble, 9000);
+
+// ── game loop ──
+const _v = new THREE.Vector3(), _f = new THREE.Vector3(), _r = new THREE.Vector3();
+const HALF = G / 2 - 0.6;
+wl.onTick((t, dt) => {
+  // arah relatif kamera (proyeksi XZ)
+  wl.camera.getWorldDirection(_f); _f.y = 0; _f.normalize();
+  _r.crossVectors(_f, new THREE.Vector3(0, 1, 0)).negate();
+  _v.set(0, 0, 0);
+  if (keys['w'] || keys['arrowup']) _v.add(_f);
+  if (keys['s'] || keys['arrowdown']) _v.sub(_f);
+  if (keys['a'] || keys['arrowleft']) _v.add(_r);
+  if (keys['d'] || keys['arrowright']) _v.sub(_r);
+  let movingByKey = _v.lengthSq() > 0;
+  if (movingByKey) { player.target = null; _v.normalize(); }
+  else if (player.target) {
+    _v.set(player.target.x - player.pos.x, 0, player.target.z - player.pos.z);
+    if (_v.length() < 0.08) { player.target = null; _v.set(0, 0, 0); } else _v.normalize();
+  }
+  player.moving = _v.lengthSq() > 0;
+  if (player.moving) {
+    const nx = THREE.MathUtils.clamp(player.pos.x + _v.x * player.speed * dt, -HALF, HALF);
+    const nz = THREE.MathUtils.clamp(player.pos.z + _v.z * player.speed * dt, -HALF, HALF);
+    if (!collide(nx, nz)) { player.pos.x = nx; player.pos.z = nz; }
+    else if (!collide(nx, player.pos.z)) player.pos.x = nx;
+    else if (!collide(player.pos.x, nz)) player.pos.z = nz;
+    me.grp.rotation.y = Math.atan2(_v.x, _v.z);
+    player.phase += dt * 9;
+  }
+  // animasi limbs player + walkers
+  const swing = (grp, phase, on) => {
+    const limbs = grp.userData.model && grp.userData.model.userData && grp.userData.model.userData.limbs;
+    if (!limbs) return;
+    const s = on ? Math.sin(phase) * 0.55 : 0;
+    limbs.legL.rotation.x = s; limbs.legR.rotation.x = -s; limbs.armL.rotation.x = -s; limbs.armR.rotation.x = s;
+  };
+  swing(me.grp, player.phase, player.moving);
+  for (const w of walkers) {
+    const e = wl.getAgent(w.id); if (!e) continue;
+    const grp = e.grp, target = w.path[w.i];
+    _v.set(target.x - grp.position.x, 0, target.z - grp.position.z);
+    const dist = _v.length();
+    if (dist < 0.06) w.i = (w.i + 1) % w.path.length;
+    else { _v.normalize(); grp.position.addScaledVector(_v, Math.min(w.speed * dt, dist)); grp.rotation.y = Math.atan2(_v.x, _v.z); }
+    swing(grp, t * 7 + w.phase, true);
+  }
+  // kamera follow lembut
+  wl.controls.target.lerp(new THREE.Vector3(player.pos.x, 0.6, player.pos.z), Math.min(1, dt * 3));
+  const off = wl.camera.position.clone().sub(wl.controls.target);
+  // (offset dikelola OrbitControls; cukup geser target)
+  // proximity prompt
+  let best = null, bd = 1.6;
+  for (const key in town.buildings) {
+    const d = town.buildings[key].door.distanceTo(player.pos);
+    if (d < bd) { bd = d; best = key; }
+  }
+  if (best !== near) {
+    near = best;
+    if (near) { const b = BUILDINGS.find((x) => x.key === near); promptEl.textContent = '👉 ' + b.title + ' — tekan E / tap di sini'; promptEl.style.display = 'block'; }
+    else promptEl.style.display = 'none';
+  }
+});
+
+// embed (di dalam /playground mighan.com): chip judul disembunyikan — top bar parent sudah ada
+if (EMBED) { const c = document.querySelector('.chip'); if (c) c.style.display = 'none'; }
+// sembunyikan hint setelah 8 dtk; reveal
+setTimeout(() => { const h = document.getElementById('hint'); if (h) h.style.opacity = '0.35'; }, 8000);
+setTimeout(() => { const l = document.getElementById('loading'); if (l) { l.style.opacity = '0'; setTimeout(() => l.remove(), 700); } }, 900);
+window.wl = wl; window.town = town;
+// hook debug/QA (dipakai uji otomatis; aman utk publik — hanya referensi state)
+window.__dbg = { player, keys, setTarget: (x, z) => { player.target = new THREE.Vector3(x, 0, z); }, openPanel, walkers };
+</script>
+</body>
+</html>

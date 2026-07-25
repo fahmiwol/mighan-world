@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mighan World — 3D Hero</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:linear-gradient(135deg,#4671f0,#3b6df0 60%,#5a8cff);overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif}
+  #canvas{position:fixed;inset:0;background:transparent}
+  #cap{position:fixed;left:26px;bottom:24px;color:#1a2240;z-index:5;pointer-events:none}
+  #cap h1{font-size:24px;font-weight:800;letter-spacing:.3px}
+  #cap p{font-size:12px;color:#3a4670;margin-top:3px;max-width:320px}
+  #cap .stats{display:flex;gap:20px;margin-top:12px}
+  #cap .stats div{font-size:11px;color:#3a4670}
+  #cap .stats b{color:#2a6cf0;font-size:17px;display:block}
+  .badge{position:fixed;right:18px;top:16px;background:rgba(255,255,255,.85);border:1px solid #cdd8f5;color:#3a4670;font-size:11px;padding:6px 12px;border-radius:20px;z-index:5}
+  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#2a6cf0;font-size:13px;z-index:6}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="canvas"></div>
+<div class="badge">🏙️ Mighan World — live 3D</div>
+<div id="loading">memuat dunia…</div>
+<div id="cap" style="opacity:0;transition:opacity .8s">
+  <h1>Dunia AI Agent-mu</h1>
+  <p>Kota mungil tempat AI agent kerja, belajar &amp; menghasilkan — 24 jam non-stop.</p>
+  <div class="stats"><div><b>44+</b>AI Agents</div><div><b>30+</b>Skills</div><div><b>24/7</b>Autonomy</div></div>
+</div>
+
+<script src="./config.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import { WorldLite } from './world-lite.js?v=18';
+import { ToyTown } from './toytown.js?v=3';
+
+const G = 16;
+const wl = new WorldLite(document.getElementById('canvas'), { mode: 'view', bloom: false });
+wl.loadScene({ grid: { w: G, h: G }, objects: [], agents: [] });
+// tema DAY: langit transparan (nyatu dgn kartu hero biru), island rumput cerah, tanpa bloom
+const town = new ToyTown(wl, { theme: 'day' });
+
+// gentle auto-rotate → "living" hero
+try { wl.controls.autoRotate = true; wl.controls.autoRotateSpeed = 0.4; wl.controls.enablePan = false; wl.controls.enableZoom = false; } catch (e) {}
+
+// ── kota pastel (layout lama dipertahankan, kualitas modeling naik: rounded + jendela + sign) ──
+town.building({ key: 'hq',     tile: [8, 8],  w: 1.7, d: 1.7, h: 3.0, color: 0x9fb0e8, accent: 0xffcf6a, sign: 'MIGHAN', prop: 'gem' });
+town.building({ key: 'cafe',   tile: [3, 3],  w: 1.2, d: 1.2, h: 2.0, color: 0xc7b0f0, accent: 0xb98cff, sign: 'CAFE' });
+town.building({ key: 'shop',   tile: [12, 3], w: 1.3, d: 1.3, h: 1.8, color: 0xf2b07a, accent: 0xff9d4d, sign: 'SHOP', prop: 'ac' });
+town.building({ key: 'arcade', tile: [3, 12], w: 1.2, d: 1.2, h: 2.2, color: 0xf0a6d6, accent: 0xff6ec7, sign: 'ARCADE', prop: 'star' });
+town.building({ key: 'office', tile: [12, 12], w: 1.2, d: 1.2, h: 2.6, color: 0x9cc0f5, accent: 0x6fb1ff, sign: 'OFFICE', prop: 'antenna' });
+town.building({ key: 'bank',   tile: [6, 12], w: 1.3, d: 1.3, h: 1.7, color: 0xeed79a, accent: 0xffd76a, sign: 'BANK', roof: 'dome' });
+town.building({ key: 'b7',     tile: [12, 7], w: 1.0, d: 1.0, h: 1.5, color: 0xb9c0ec, accent: 0xffc266 });
+town.building({ key: 'b8',     tile: [4, 7],  w: 1.0, d: 1.0, h: 1.9, color: 0xd9c0a8, accent: 0xffae5c });
+
+// jalan + plaza + air mancur + dekorasi
+town.road([3, 5], [12, 5], 1.2); town.road([3, 10], [12, 10], 1.2);
+town.plaza([8, 8], 3.4, 2.6);
+town.fountain([7, 8]);
+[[7, 6], [9, 6], [6, 10], [10, 10], [7, 11], [2, 8], [14, 5], [14, 10]].forEach((t, i) => town.tree(t, { scale: 0.85, pine: i % 4 === 0 }));
+[[5, 6], [10, 6], [5, 9], [11, 9]].forEach((t) => town.lamp(t));
+[[6, 7], [10, 8]].forEach((t) => town.flowerPatch(t));
+town.clouds(3);
+town.attachTick();
+
+// ── walking chibi NPCs (sidewalk loops) ──
+const palette = [{ shirt: '#7c3aed' }, { shirt: '#ff5ea8' }, { shirt: '#00b3a4' }, { shirt: '#ffb703' }, { shirt: '#4a7bd8' }, { shirt: '#e63946' }];
+const paths = [
+  [[4, 5], [11, 5], [11, 10], [4, 10]],      // loop di atas jalan
+  [[2, 4], [13, 4], [13, 13], [2, 13]],
+  [[7, 7], [9, 7], [9, 9], [7, 9]]           // loop plaza
+];
+const walkers = []; let n = 0;
+paths.forEach((path, pi) => {
+  const count = pi === 1 ? 3 : 2;
+  for (let k = 0; k < count; k++) {
+    const id = 'npc' + (n++);
+    const ap = palette[n % palette.length];
+    wl.placeAgent({ id, name: '', tile: path[0], appearance: { shirt: ap.shirt, expression: (n % 3 === 0 ? 'happy' : 'normal') } });
+    const e = wl.getAgent(id); if (e) e.grp.userData.bob = false;
+    walkers.push({ id, path: path.map(t => wl._world(t, 0)), i: Math.floor((k / count) * path.length), speed: 0.85 + Math.random() * 0.5, phase: Math.random() * 6 });
+  }
+});
+
+const _v = new THREE.Vector3();
+wl.onTick((t, dt) => {
+  for (const w of walkers) {
+    const e = wl.getAgent(w.id); if (!e) continue;
+    const grp = e.grp, target = w.path[w.i];
+    _v.set(target.x - grp.position.x, 0, target.z - grp.position.z);
+    const dist = _v.length();
+    if (dist < 0.06) { w.i = (w.i + 1) % w.path.length; }
+    else { _v.normalize(); grp.position.addScaledVector(_v, Math.min(w.speed * dt, dist)); grp.rotation.y = Math.atan2(_v.x, _v.z); }
+    const limbs = grp.userData.model && grp.userData.model.userData && grp.userData.model.userData.limbs;
+    if (limbs) { const s = Math.sin(t * 8 + w.phase) * 0.5; limbs.legL.rotation.x = s; limbs.legR.rotation.x = -s; limbs.armL.rotation.x = -s; limbs.armR.rotation.x = s; }
+  }
+});
+
+// reveal (embed mode = hide caption/badge; the landing provides the copy)
+const EMBED = new URLSearchParams(location.search).has('embed');
+if (EMBED) { const b = document.querySelector('.badge'); if (b) b.style.display = 'none'; }
+setTimeout(() => { const l = document.getElementById('loading'); if (l) l.style.display = 'none'; if (!EMBED) document.getElementById('cap').style.opacity = '1'; }, 600);
+window.wl = wl; window.town = town;
+</script>
+</body>
+</html>

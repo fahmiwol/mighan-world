@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mighan World — dunia 3D tempat AI agent bekerja</title>
+<meta name="description" content="Kota mungil 3D tempat AI agent hidup dan bekerja. Jalan-jalan, bangun duniamu sendiri — langsung di browser, tanpa login, tanpa instalasi.">
+<meta property="og:title" content="Mighan World — dunia 3D tempat AI agent bekerja">
+<meta property="og:description" content="Jalan-jalan di Mighan Town atau bangun duniamu sendiri. Berjalan penuh di browser.">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#12122e;--card:#1b1740;--line:#3a3570;--ink:#eaf2ff;--dim:#a9b2dd;--acc:#7c3aed;--acc2:#5a8cff}
+  html,body{min-height:100%;background:
+     radial-gradient(1200px 600px at 20% -10%, #2a2160 0%, transparent 60%),
+     radial-gradient(900px 500px at 90% 10%, #1d3a6b 0%, transparent 55%), var(--bg);
+    color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.6}
+  .wrap{max-width:1060px;margin:0 auto;padding:56px 22px 80px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:44px}
+  .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--acc),var(--acc2));
+    display:grid;place-items:center;font-size:19px}
+  .brand{font-weight:800;letter-spacing:.4px}
+  h1{font-size:clamp(30px,5.2vw,50px);line-height:1.14;font-weight:800;letter-spacing:-.5px;margin-bottom:16px}
+  h1 span{background:linear-gradient(120deg,#a78bfa,#7cc8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{font-size:17px;color:var(--dim);max-width:620px;margin-bottom:32px}
+  .cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:56px}
+  .btn{display:inline-flex;align-items:center;gap:9px;padding:14px 26px;border-radius:13px;font-weight:700;
+    font-size:15px;text-decoration:none;border:1px solid transparent;transition:transform .15s}
+  .btn:hover{transform:translateY(-2px)}
+  .btn.primary{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;box-shadow:0 8px 28px rgba(124,58,237,.4)}
+  .btn.ghost{border-color:var(--line);color:var(--ink);background:rgba(27,23,64,.6)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:18px;margin-bottom:44px}
+  .card{background:rgba(27,23,64,.66);border:1px solid var(--line);border-radius:17px;padding:24px;
+    text-decoration:none;color:inherit;display:block;transition:border-color .2s,transform .15s}
+  .card:hover{border-color:#6f66c0;transform:translateY(-3px)}
+  .card .ico{font-size:26px;margin-bottom:12px}
+  .card h3{font-size:17px;margin-bottom:7px}
+  .card p{font-size:13.5px;color:var(--dim)}
+  .card .tag{display:inline-block;margin-top:12px;font-size:11px;color:#cbb6ff;
+    border:1px solid #4a3f8a;border-radius:20px;padding:3px 11px}
+  .note{background:rgba(255,215,106,.08);border:1px solid rgba(255,215,106,.3);border-radius:14px;
+    padding:18px 20px;font-size:13.5px;color:#f0e2bd;margin-bottom:40px}
+  .note b{color:#ffd76a}
+  footer{border-top:1px solid var(--line);padding-top:22px;font-size:12.5px;color:var(--dim);
+    display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
+  footer a{color:#9db4ff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🌙</div>
+    <div class="brand">MIGHAN WORLD</div>
+  </header>
+
+  <h1>Dunia 3D tempat<br><span>AI agent bekerja.</span></h1>
+  <p class="lead">
+    Kota mungil tempat AI agent punya persona, pekerjaan, dan rutinitas sendiri.
+    Jalan-jalan di dalamnya, atau bangun duniamu — semuanya berjalan penuh di browser,
+    tanpa login dan tanpa instalasi.
+  </p>
+
+  <div class="cta-row">
+    <a class="btn primary" href="./town.html">🌙 Masuk Mighan Town</a>
+    <a class="btn ghost" href="./builder.html">🛠️ Bangun duniamu</a>
+  </div>
+
+  <div class="grid">
+    <a class="card" href="./town.html">
+      <div class="ico">🏙️</div>
+      <h3>Mighan Town</h3>
+      <p>Kota malam bergaya diorama. Jalan pakai WASD atau klik, dekati gedung untuk melihat
+         fitur yang diwakilinya. Warga kota berjalan sendiri.</p>
+      <span class="tag">jalan-jalan</span>
+    </a>
+    <a class="card" href="./builder.html">
+      <div class="ico">🧱</div>
+      <h3>World Builder</h3>
+      <p>Susun duniamu: taruh objek dan NPC, cat lantai, buat zona berlabel. Semua drag-drop.</p>
+      <span class="tag">bikin sendiri</span>
+    </a>
+    <a class="card" href="./avatar-studio.html">
+      <div class="ico">🧑‍🎨</div>
+      <h3>Avatar Studio</h3>
+      <p>Rancang karakter chibi: rambut, warna, ekspresi. Bahan penghuni duniamu.</p>
+      <span class="tag">karakter</span>
+    </a>
+    <a class="card" href="./sandbox.html">
+      <div class="ico">🎛️</div>
+      <h3>Sandbox</h3>
+      <p>Ruang uji renderer: palet objek, drag-drop, muat scene dari JSON.</p>
+      <span class="tag">teknis</span>
+    </a>
+  </div>
+
+  <div class="note">
+    <b>Catatan.</b> Halaman ini berisi bagian dunia 3D yang berjalan sepenuhnya di browser,
+    jadi tetap hidup meski server aplikasi sedang tidak aktif. Fitur yang butuh server
+    — menyimpan dunia, generator aset AI, marketplace NPC — akan diam saja sampai
+    layanannya kembali menyala.
+  </div>
+
+  <footer>
+    <div>Mighan World — bagian publik dari ekosistem Mighan.</div>
+    <div><a href="./town.html">Town</a> · <a href="./builder.html">Builder</a> · <a href="./city-hero.html">Hero</a></div>
+  </footer>
+</div>
+</body>
+</html>

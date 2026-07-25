@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mighan World-Lite</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#0c0e14;color:#e8eaf0;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+  #app{display:flex;height:100vh}
+  #palette{width:180px;flex:none;background:#12152a;border-right:1px solid #2a3042;padding:12px;overflow:auto}
+  #palette h3{font-size:11px;color:#8b93a7;text-transform:uppercase;letter-spacing:1px;margin:8px 0 6px}
+  .item{display:flex;align-items:center;gap:8px;padding:7px 9px;background:#1c2030;border:1px solid #2a3042;border-radius:8px;margin-bottom:6px;cursor:grab;font-size:13px}
+  .item:hover{border-color:#33d6e0}
+  .swatch{width:18px;height:18px;border-radius:5px;flex:none}
+  .item img{width:24px;height:24px;border-radius:6px;object-fit:cover}
+  #stage{flex:1;position:relative}
+  #canvas{position:absolute;inset:0}
+  #bar{position:absolute;top:10px;left:10px;display:flex;gap:8px;z-index:5}
+  .btn{background:#33d6e0;color:#04222a;border:0;border-radius:7px;padding:7px 13px;font-weight:600;cursor:pointer;font-size:12px}
+  .btn.ghost{background:#12152a;color:#e8eaf0;border:1px solid #2a3042}
+  #log{position:absolute;bottom:10px;left:10px;right:10px;max-height:90px;overflow:auto;background:rgba(7,8,15,.85);border:1px solid #2a3042;border-radius:8px;padding:8px 10px;font-size:12px;color:#8b93a7;z-index:5}
+  #log b{color:#33d6e0}
+  .hide{display:none!important}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="app">
+  <div id="palette">
+    <h3>Objek</h3>
+    <div class="item" draggable="true" data-kind="object" data-type="desk"><span class="swatch" style="background:#4a7bd8"></span>Meja</div>
+    <div class="item" draggable="true" data-kind="object" data-type="chair"><span class="swatch" style="background:#d85a8a"></span>Kursi</div>
+    <div class="item" draggable="true" data-kind="object" data-type="plant"><span class="swatch" style="background:#3ddc84"></span>Tanaman</div>
+    <div class="item" draggable="true" data-kind="object" data-type="board"><span class="swatch" style="background:#ffc955"></span>Papan</div>
+    <div class="item" draggable="true" data-kind="object" data-type="portal"><span class="swatch" style="background:#33d6e0"></span>Portal</div>
+    <div class="item" draggable="true" data-kind="object" data-type="shelf"><span class="swatch" style="background:#9a7b4f"></span>Rak</div>
+    <h3>Agent (hire)</h3>
+    <div class="item" draggable="true" data-kind="agent" data-name="Dewi" data-avatar="https://image.pollinations.ai/prompt/cute%203D%20chibi%20designer%2C%20beret%2C%20pastel?width=200&height=200&nologo=true&model=flux&seed=11"><img src="https://image.pollinations.ai/prompt/cute%203D%20chibi%20designer%2C%20beret%2C%20pastel?width=200&height=200&nologo=true&model=flux&seed=11">Dewi</div>
+    <div class="item" draggable="true" data-kind="agent" data-name="Sasa" data-avatar="https://image.pollinations.ai/prompt/cute%203D%20chibi%20social%20media%20manager%2C%20pastel?width=200&height=200&nologo=true&model=flux&seed=12"><img src="https://image.pollinations.ai/prompt/cute%203D%20chibi%20social%20media%20manager%2C%20pastel?width=200&height=200&nologo=true&model=flux&seed=12">Sasa</div>
+  </div>
+  <div id="stage">
+    <div id="bar">
+      <button class="btn" onclick="window.__wl.save()">💾 Simpan</button>
+      <button class="btn ghost" onclick="window.__wl.reset()">Reset</button>
+      <span class="btn ghost" id="modeTag">build</span>
+    </div>
+    <div id="canvas"></div>
+    <div id="log"><b>world-lite</b> siap. Drag objek/agent ke kanvas.</div>
+  </div>
+</div>
+
+<script type="module">
+import { WorldLite } from './world-lite.js?v=12';
+
+const params = new URLSearchParams(location.search);
+const mode = params.get('mode') || 'build';
+const roomId = params.get('roomId');
+const logEl = document.getElementById('log');
+const log = (m) => { logEl.innerHTML = '<b>world-lite</b> ' + m; };
+
+const wl = new WorldLite(document.getElementById('canvas'), { mode });
+document.getElementById('modeTag').textContent = mode;
+if (mode === 'view') document.getElementById('palette').classList.add('hide');
+
+wl.on('place', (d) => log('+ ' + d.kind + ' ' + (d.type || d.id) + ' @ [' + d.tile + ']'));
+wl.on('agent:click', (d) => log('klik agent: <b>' + d.name + '</b> (id ' + d.id + ') → kirim ke gateway untuk chat'));
+wl.on('object:click', (d) => log('klik objek: ' + d.type));
+
+// muat scene: dari gateway kalau ada roomId, else sample
+async function boot() {
+  let scene;
+  try {
+    if (roomId) scene = await (await fetch('/api/v1/rooms/' + roomId + '/state')).json();
+    if (!scene || !scene.grid) scene = await (await fetch('./scene.sample.json')).json();
+  } catch (e) { scene = await (await fetch('./scene.sample.json')).json(); }
+  wl.loadScene(scene);
+  log('scene dimuat — ' + (scene.objects || []).length + ' objek, ' + (scene.agents || []).length + ' agent.');
+}
+boot();
+
+// drag-drop dari palette → kanvas
+const canvas = document.getElementById('canvas');
+let drag = null;
+document.querySelectorAll('.item').forEach((el) => {
+  el.addEventListener('dragstart', () => {
+    drag = { kind: el.dataset.kind, type: el.dataset.type, name: el.dataset.name, avatarUrl: el.dataset.avatar };
+  });
+});
+canvas.addEventListener('dragover', (e) => e.preventDefault());
+canvas.addEventListener('drop', (e) => { e.preventDefault(); if (drag) wl.dropAt(e.clientX, e.clientY, drag); });
+
+window.wl = wl;   // debug/QA hook (konsisten dgn builder/town/city-hero)
+window.__wl = {
+  save() {
+    const json = wl.toJSON();
+    log('saved (' + json.objects.length + ' obj, ' + json.agents.length + ' agent) — POST ke /api/v1/rooms/' + (roomId || '{id}') + '/state');
+    try { window.parent.postMessage({ source: 'world-lite', evt: 'save', detail: json }, '*'); } catch (e) {}
+  },
+  reset() { location.reload(); }
+};
+</script>
+</body>
+</html>
