@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://fahmiwol.github.io/mighan-world/sitemap.xml
