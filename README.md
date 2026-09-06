@@ -93,9 +93,9 @@ lahir dua versi yang menyimpang.
 
 The 3D and agent pieces behind this world, packaged to drop into your own project:
 
-- **[NPC Brain Kit](https://fahmiwolf.gumroad.com/l/zgqoje)** — $24. Three.js characters that talk, remember and keep a schedule.
-- **[Idle Forge Starter](https://fahmiwolf.gumroad.com/l/weoog)** — $29. A finished React Three Fiber idle game, ready to reskin.
-- **[PackFrame Studio](https://fahmiwolf.gumroad.com/l/obcdbk)** — $39. 3D packaging previews in the browser, offline.
+- **[NPC Brain Kit](https://fahmiwolf.gumroad.com/l/zgqoje)** — $7. Three.js characters that talk, remember and keep a schedule.
+- **[Idle Forge Starter](https://fahmiwolf.gumroad.com/l/weoog)** — $7. A finished React Three Fiber idle game, ready to reskin.
+- **[PackFrame Studio](https://fahmiwolf.gumroad.com/l/obcdbk)** — $7. 3D packaging previews in the browser, offline.
 
 All of them: [fahmiwolf.gumroad.com](https://fahmiwolf.gumroad.com)
 
